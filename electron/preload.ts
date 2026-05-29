@@ -1,5 +1,32 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
+// 允许的 IPC 通道白名单
+const VALID_CHANNELS: Record<string, string[]> = {
+  // 窗口控制
+  send: ['window-minimize', 'window-maximize', 'window-close'],
+  // 对话框
+  invoke: ['dialog:openFile', 'dialog:saveFile'],
+  // 文件操作（受限制）
+  file: ['file:read', 'file:write', 'file:readImage'],
+  // 外部链接
+  shell: ['shell:openExternal'],
+  // 应用路径
+  app: ['app:getPath'],
+  // Bot 相关
+  bot: ['bot:setApiKey', 'bot:updateBotSettings', 'bot:get-settings', 'bot:configurePaddleOCR'],
+  // 安全存储
+  secure: ['secure:get', 'secure:set', 'secure:delete', 'secure:has', 'secure:is-available'],
+  // 自动更新
+  update: ['update:check', 'update:download', 'update:install', 'update:status', 'update:set-skip'],
+  // 可监听的事件
+  on: ['update:state-changed', 'update:available', 'update:downloaded'],
+}
+
+// 验证通道是否在白名单中
+function validateChannel(type: keyof typeof VALID_CHANNELS, channel: string): boolean {
+  return VALID_CHANNELS[type]?.includes(channel) ?? false
+}
+
 // 暴露给渲染进程的API
 contextBridge.exposeInMainWorld('electronAPI', {
   // 窗口控制
@@ -13,7 +40,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveFile: (options: Electron.SaveDialogOptions) => 
     ipcRenderer.invoke('dialog:saveFile', options),
 
-  // 文件操作
+  // 文件操作（只允许访问应用数据目录）
   readFile: (filePath: string) => ipcRenderer.invoke('file:read', filePath),
   writeFile: (filePath: string, content: string) => 
     ipcRenderer.invoke('file:write', filePath, content),
@@ -24,18 +51,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // 应用路径
   getPath: (name: string) => ipcRenderer.invoke('app:getPath', name),
-
-  // 通用 IPC 方法（供 Playwright 自动化使用）
-  invoke: (channel: string, ...args: any[]) => ipcRenderer.invoke(channel, ...args),
-  send: (channel: string, ...args: any[]) => ipcRenderer.send(channel, ...args),
-
-  // 事件监听
-  on: (channel: string, callback: (...args: any[]) => void) => {
-    ipcRenderer.on(channel, (_, ...args) => callback(...args))
-  },
-  off: (channel: string) => {
-    ipcRenderer.removeAllListeners(channel)
-  },
 
   // 设置 API Key
   setApiKey: (apiKey: string) => ipcRenderer.send('bot:setApiKey', apiKey),
@@ -70,13 +85,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getStatus: () => ipcRenderer.invoke('update:status'),
     setSkip: (skip: boolean) => ipcRenderer.invoke('update:set-skip', skip),
     onStateChanged: (callback: (state: any) => void) => {
-      ipcRenderer.on('update:state-changed', (_, state) => callback(state))
+      const handler = (_: any, state: any) => callback(state)
+      ipcRenderer.on('update:state-changed', handler)
+      // 返回取消订阅函数
+      return () => ipcRenderer.removeListener('update:state-changed', handler)
     },
     onAvailable: (callback: (info: any) => void) => {
-      ipcRenderer.on('update:available', (_, info) => callback(info))
+      const handler = (_: any, info: any) => callback(info)
+      ipcRenderer.on('update:available', handler)
+      return () => ipcRenderer.removeListener('update:available', handler)
     },
     onDownloaded: (callback: (info: any) => void) => {
-      ipcRenderer.on('update:downloaded', (_, info) => callback(info))
+      const handler = (_: any, info: any) => callback(info)
+      ipcRenderer.on('update:downloaded', handler)
+      return () => ipcRenderer.removeListener('update:downloaded', handler)
     },
   },
 })
@@ -102,10 +124,10 @@ export interface ElectronAPI {
   readImage: (filePath: string) => Promise<{ success: boolean; data?: string; error?: string }>
   openExternal: (url: string) => Promise<void>
   getPath: (name: string) => Promise<string>
-  invoke: (channel: string, ...args: any[]) => Promise<any>
-  send: (channel: string, ...args: any[]) => void
-  on: (channel: string, callback: (...args: any[]) => void) => void
-  off: (channel: string) => void
+  setApiKey: (apiKey: string) => void
+  updateBotSettings: (settings: any) => void
+  getBotSettings: () => Promise<any>
+  configurePaddleOCR: (config: any) => void
   secureStorage: {
     get: (key: string) => Promise<string | null>
     set: (key: string, value: string) => Promise<boolean>
@@ -119,9 +141,9 @@ export interface ElectronAPI {
     install: () => Promise<void>
     getStatus: () => Promise<UpdateState>
     setSkip: (skip: boolean) => Promise<void>
-    onStateChanged: (callback: (state: UpdateState) => void) => void
-    onAvailable: (callback: (info: any) => void) => void
-    onDownloaded: (callback: (info: any) => void) => void
+    onStateChanged: (callback: (state: UpdateState) => void) => () => void
+    onAvailable: (callback: (info: any) => void) => () => void
+    onDownloaded: (callback: (info: any) => void) => () => void
   }
 }
 

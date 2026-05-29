@@ -36,7 +36,7 @@ interface GradingState {
   setIsRunning: (isRunning: boolean) => void
   setIsPaused: (isPaused: boolean) => void
   setGradingMode: (mode: GradingMode) => void
-  updateStats: (updates: Partial<GradingState['stats']>) => void
+  updateStats: (updates: Partial<GradingState['stats']> | ((stats: GradingState['stats']) => Partial<GradingState['stats']>)) => void
   resetStats: () => void
   setPreviewImage: (image: string | null) => void
   setRecognizedText: (text: string) => void
@@ -78,9 +78,10 @@ export const useGradingStore = create<GradingState>()(
       setIsRunning: (isRunning) => set({ isRunning }),
       setIsPaused: (isPaused) => set({ isPaused }),
       setGradingMode: (gradingMode) => set({ gradingMode }),
-      updateStats: (updates) => set((state) => ({
-        stats: { ...state.stats, ...updates }
-      })),
+      updateStats: (updates) => set((state) => {
+        const newUpdates = typeof updates === 'function' ? updates(state.stats) : updates
+        return { stats: { ...state.stats, ...newUpdates } }
+      }),
       resetStats: () => set({ stats: { ...defaultStats } }),
       setPreviewImage: (previewImage) => set({ previewImage }),
       setRecognizedText: (recognizedText) => set({ recognizedText }),

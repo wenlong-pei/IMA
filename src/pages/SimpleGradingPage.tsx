@@ -325,7 +325,7 @@ export default function SimpleGradingPage() {
           addLog(`已批改 ${consecutiveCount} 份，请检查...`, 'warning')
         }
 
-        updateStats({ total: stats.total + 1 })
+        updateStats((prev) => ({ total: prev.total + 1 }))
 
         // 1. 获取图片
         addLog('正在获取答题图片...')
@@ -350,7 +350,7 @@ export default function SimpleGradingPage() {
           addLog('检测到空白卷，直接打0分', 'warning')
           setAiComment('空白卷')
           await gradingBotProxy.submitScore(0)
-          updateStats({ blank: stats.blank + 1, completed: stats.completed + 1, currentScore: 0 })
+          updateStats((prev) => ({ blank: prev.blank + 1, completed: prev.completed + 1, currentScore: 0 }))
           consecutiveCount++
           playClick()
           // 下一张
@@ -377,7 +377,7 @@ export default function SimpleGradingPage() {
             retryCount++
             if (retryCount >= maxRetries) {
               addLog(`AI评分失败（已重试${maxRetries}次）: ${err}`, 'error')
-              updateStats({ failed: stats.failed + 1 })
+              updateStats((prev) => ({ failed: prev.failed + 1 }))
               gradeResult = { score: 0, comment: '评分失败' }
               break
             }
@@ -422,7 +422,7 @@ export default function SimpleGradingPage() {
         // 6. 提交
         await gradingBotProxy.submitScore(submitScore)
         addLog(`已提交 ${submitScore}分`, 'success')
-        updateStats({ completed: stats.completed + 1 })
+        updateStats((prev) => ({ completed: prev.completed + 1 }))
         consecutiveCount++
         playClick()
 
@@ -457,14 +457,20 @@ export default function SimpleGradingPage() {
 
   const handlePause = () => {
     playClick()
-    pausedRef.current = !pausedRef.current
-    setIsPaused(pausedRef.current)
-    if (pausedRef.current) {
-      gradingBotProxy.start()
-      addLog('继续批改')
-    } else {
+    // 切换暂停状态
+    const newPausedState = !pausedRef.current
+    pausedRef.current = newPausedState
+    setIsPaused(newPausedState)
+    
+    // 根据新状态执行操作
+    if (newPausedState) {
+      // 新状态是暂停 -> 停止批改
       gradingBotProxy.stop()
       addLog('已暂停')
+    } else {
+      // 新状态是继续 -> 恢复批改
+      gradingBotProxy.start()
+      addLog('继续批改')
     }
   }
 

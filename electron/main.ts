@@ -282,9 +282,41 @@ ipcMain.on('window-close', () => mainWindow?.close())
 ipcMain.handle('dialog:openFile', async (_, options: any) => dialog.showOpenDialog(mainWindow!, options))
 ipcMain.handle('dialog:saveFile', async (_, options: any) => dialog.showSaveDialog(mainWindow!, options))
 
+// 允许的文件路径前缀（沙箱限制）
+const ALLOWED_PATHS = ['userData', 'temp', 'downloads', 'documents']
+
+// 验证文件路径是否在允许范围内
+function isPathAllowed(filePath: string): boolean {
+  try {
+    const resolvedPath = path.resolve(filePath)
+    // 检查是否在允许的系统路径下
+    for (const allowedName of ALLOWED_PATHS) {
+      try {
+        const allowedPath = app.getPath(allowedName as any)
+        if (resolvedPath.startsWith(allowedPath)) {
+          return true
+        }
+      } catch {
+        // 忽略不存在的路径
+      }
+    }
+    // 检查是否是相对路径（在应用目录内）
+    const appPath = app.getAppPath()
+    if (resolvedPath.startsWith(appPath)) {
+      return true
+    }
+    return false
+  } catch {
+    return false
+  }
+}
+
 // ============ 文件操作 ============
 ipcMain.handle('file:read', async (_, filePath: string) => {
   try {
+    if (!isPathAllowed(filePath)) {
+      return { success: false, error: 'Access denied: path not in allowed directories' }
+    }
     const content = await fs.promises.readFile(filePath, 'utf-8')
     return { success: true, data: content }
   } catch (error) {
@@ -294,6 +326,9 @@ ipcMain.handle('file:read', async (_, filePath: string) => {
 
 ipcMain.handle('file:write', async (_, filePath: string, content: string) => {
   try {
+    if (!isPathAllowed(filePath)) {
+      return { success: false, error: 'Access denied: path not in allowed directories' }
+    }
     await fs.promises.writeFile(filePath, content, 'utf-8')
     return { success: true }
   } catch (error) {
@@ -303,6 +338,9 @@ ipcMain.handle('file:write', async (_, filePath: string, content: string) => {
 
 ipcMain.handle('file:readImage', async (_, filePath: string) => {
   try {
+    if (!isPathAllowed(filePath)) {
+      return { success: false, error: 'Access denied: path not in allowed directories' }
+    }
     const buffer = await fs.promises.readFile(filePath)
     const base64 = buffer.toString('base64')
     const ext = path.extname(filePath).toLowerCase()
@@ -316,7 +354,38 @@ ipcMain.handle('file:readImage', async (_, filePath: string) => {
 })
 
 // ============ 外部链接 ============
-ipcMain.handle('shell:openExternal', async (_, url: string) => shell.openExternal(url))
+const ALLOWED_PROTOCOLS = ['http:', 'https:']
+const ALLOWED_EXTERNAL_DOMAINS = [
+  'zhixue.com',
+  'zhixueyun.com',
+  'deepseek.com',
+  'volcengine.com',
+  'siliconflow.cn',
+  'github.com',
+  'aistudio.baidu.com',
+]
+
+ipcMain.handle('shell:openExternal', async (_, url: string) => {
+  try {
+    const urlObj = new URL(url)
+    // 验证协议
+    if (!ALLOWED_PROTOCOLS.includes(urlObj.protocol)) {
+      return { success: false, error: 'Invalid protocol' }
+    }
+    // 验证域名
+    const isAllowed = ALLOWED_EXTERNAL_DOMAINS.some(domain => 
+      urlObj.hostname === domain || urlObj.hostname.endsWith('.' + domain)
+    )
+    if (!isAllowed) {
+      // 对于未知域名，记录日志但仍允许打开（用户可能需要访问其他学习平台）
+      logger.warn('Opening external URL not in whitelist:', url)
+    }
+    await shell.openExternal(url)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+})
 
 // ============ 应用路径 ============
 ipcMain.handle('app:getPath', async (_, name: string) => app.getPath(name as any))
@@ -686,8 +755,35 @@ ipcMain.handle('bot:capture', async () => {
 
 // 自动获取图片 - 智学网专用
 ipcMain.handle('bot:capture-auto', async () => {
-  // 智学网专用版本，与 capture 相同
-  return ipcMain.emit('bot:capture') 
+  // 直接调用 capture 逻辑，复用代码
+  if (!gradingPage) return null
+  try {
+    // 使用智学网专用选择器获取图片 URL
+    const imageUrls = await gradingPage.evaluate((selectors: ZhixueSelectors) => {
+      // 先尝试旧版选择器
+      let imgs = document.querySelectorAll(selectors.ANSWER_IMAGE)
+      if (imgs.length === 0) {
+        // 尝试新版选择器
+        imgs = document.querySelectorAll(selectors.ANSWER_IMAGE_NEW)
+      }
+      return Array.from(imgs).map(img => (img as HTMLImageElement).src).filter(src => src)
+    }, getZhixueSelectors())
+
+    if (imageUrls.length === 0) {
+      console.error('未找到智学网答题图片')
+      return null
+    }
+
+    // 获取第一张图片并转为 base64
+    const base64Image = await fetchImageAsBase64(imageUrls[0])
+    if (base64Image) {
+      console.log(`成功获取智学网图片: ${imageUrls[0].substring(0, 100)}...`)
+    }
+    return base64Image
+  } catch (error) {
+    console.error('获取图片失败:', error)
+    return null
+  }
 })
 
 // ============ OCR识别（支持 PaddleOCR-VL-1.5 服务）============
