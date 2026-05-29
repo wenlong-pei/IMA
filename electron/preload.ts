@@ -61,7 +61,34 @@ contextBridge.exposeInMainWorld('electronAPI', {
     has: (key: string) => ipcRenderer.invoke('secure:has', key),
     isAvailable: () => ipcRenderer.invoke('secure:is-available'),
   },
+
+  // 自动更新
+  update: {
+    check: () => ipcRenderer.invoke('update:check'),
+    download: () => ipcRenderer.invoke('update:download'),
+    install: () => ipcRenderer.invoke('update:install'),
+    getStatus: () => ipcRenderer.invoke('update:status'),
+    setSkip: (skip: boolean) => ipcRenderer.invoke('update:set-skip', skip),
+    onStateChanged: (callback: (state: any) => void) => {
+      ipcRenderer.on('update:state-changed', (_, state) => callback(state))
+    },
+    onAvailable: (callback: (info: any) => void) => {
+      ipcRenderer.on('update:available', (_, info) => callback(info))
+    },
+    onDownloaded: (callback: (info: any) => void) => {
+      ipcRenderer.on('update:downloaded', (_, info) => callback(info))
+    },
+  },
 })
+
+// 更新状态类型
+interface UpdateState {
+  status: 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error'
+  progress: number
+  version?: string
+  releaseNotes?: string
+  error?: string
+}
 
 // TypeScript 类型声明
 export interface ElectronAPI {
@@ -85,6 +112,16 @@ export interface ElectronAPI {
     delete: (key: string) => Promise<boolean>
     has: (key: string) => Promise<boolean>
     isAvailable: () => Promise<boolean>
+  }
+  update: {
+    check: () => Promise<any>
+    download: () => Promise<boolean>
+    install: () => Promise<void>
+    getStatus: () => Promise<UpdateState>
+    setSkip: (skip: boolean) => Promise<void>
+    onStateChanged: (callback: (state: UpdateState) => void) => void
+    onAvailable: (callback: (info: any) => void) => void
+    onDownloaded: (callback: (info: any) => void) => void
   }
 }
 

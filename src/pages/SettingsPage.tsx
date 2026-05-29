@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { 
+import {
   Shield,
   Brain,
   Palette,
@@ -17,12 +17,17 @@ import {
   Plus,
   Server,
   Thermometer,
-  Hash
+  Hash,
+  Download,
+  HelpCircle,
+  BookOpen
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useSound } from '@/hooks/useSound'
 import type { AiProvider } from '@/types'
+import UpdateChecker from '@/components/common/UpdateChecker'
+import { startIntroGuide, resetIntroGuide } from '@/components/common/IntroGuide'
 import './SettingsPage.scss'
 
 export default function SettingsPage() {
@@ -168,7 +173,16 @@ export default function SettingsPage() {
     { id: 'confirm', label: '二次确认', icon: Shield },
     { id: 'ai', label: 'AI设置', icon: Brain },
     { id: 'ui', label: '界面设置', icon: Palette },
+    { id: 'help', label: '帮助', icon: HelpCircle },
   ]
+
+  // 开始新手引导
+  const handleStartIntro = () => {
+    resetIntroGuide()
+    setTimeout(() => {
+      startIntroGuide()
+    }, 100)
+  }
 
   return (
     <div className="settings-page">
@@ -246,6 +260,9 @@ export default function SettingsPage() {
                   />
                 </div>
               </div>
+
+              {/* 软件更新 */}
+              <UpdateChecker />
 
               <div className="setting-item">
                 <div className="setting-item__info">
@@ -672,6 +689,78 @@ export default function SettingsPage() {
                       {settings.showScoreOnImage ? <Check size={14} /> : null}
                     </span>
                   </label>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* 帮助 */}
+          {activeTab === 'help' && (
+            <motion.div
+              className="settings-section"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+            >
+              <h2>帮助与教程</h2>
+              <p className="section-desc">
+                了解如何使用皮老板智能阅卷工具。
+              </p>
+
+              <div className="setting-item">
+                <div className="setting-item__info">
+                  <h4><BookOpen size={14} /> 新手引导</h4>
+                  <p>重新观看功能介绍和操作指南</p>
+                </div>
+                <div className="setting-item__control">
+                  <button className="btn btn--primary" onClick={handleStartIntro}>
+                    开始引导
+                  </button>
+                </div>
+              </div>
+
+              <div className="help-cards">
+                <div className="help-card">
+                  <h4>快速开始</h4>
+                  <ol>
+                    <li>在"评分标准"页面创建或导入评分标准</li>
+                    <li>返回自动批改页面，输入智学网链接</li>
+                    <li>选择一个评分标准和批改模式</li>
+                    <li>点击"开始自动批改"</li>
+                  </ol>
+                </div>
+
+                <div className="help-card">
+                  <h4>批改模式说明</h4>
+                  <ul>
+                    <li><strong>普通模式：</strong>AI评分后等待5秒，期间可暂停或取消</li>
+                    <li><strong>试改模式：</strong>AI评分后等待确认，支持分数纠错</li>
+                    <li><strong>无人值守：</strong>全自动批改，适合大量作业</li>
+                  </ul>
+                </div>
+
+                <div className="help-card">
+                  <h4>OCR与AI</h4>
+                  <ul>
+                    <li>PaddleOCR用于识别答题图片中的文字</li>
+                    <li>DeepSeek/火山引擎等AI用于智能评分</li>
+                    <li>请在AI设置中配置API Key以启用AI评分</li>
+                  </ul>
+                </div>
+
+                <div className="help-card">
+                  <h4>常见问题</h4>
+                  <details>
+                    <summary>提示"未找到可用的浏览器"怎么办？</summary>
+                    <p>请确保已安装Chrome或Edge浏览器，或运行 <code>npx playwright install chromium</code></p>
+                  </details>
+                  <details>
+                    <summary>OCR识别失败？</summary>
+                    <p>请在设置中配置PaddleOCR的Access Token，或使用AI Studio服务</p>
+                  </details>
+                  <details>
+                    <summary>AI评分不准确？</summary>
+                    <p>使用试改模式进行纠错，AI会自动优化评分标准</p>
+                  </details>
                 </div>
               </div>
             </motion.div>

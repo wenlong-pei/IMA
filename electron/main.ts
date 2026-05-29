@@ -2,6 +2,9 @@ import { app, BrowserWindow, ipcMain, dialog, shell, safeStorage } from 'electro
 import * as path from 'path'
 import * as fs from 'fs'
 import axios from 'axios'
+import { autoUpdater } from 'electron-updater'
+import { getAutoUpdateService } from './autoUpdater'
+import { logger } from './logger'
 
 // 安全存储
 let secureStorage: { get: (key: string) => string | null; set: (key: string, value: string) => void; delete: (key: string) => void; has: (key: string) => boolean; isAvailable: () => boolean } | null = null
@@ -328,11 +331,14 @@ ipcMain.on('bot:updateBotSettings', (_, settings: BotSettings) => {
   currentBotSettings = settings
   // 兼容旧逻辑：同步活跃服务商的 API Key
   if (currentBotSettings.providers && currentBotSettings.providers.length > 0) {
-    const activeProvider = currentBotSettings.providers.find(p => p.id === currentBotSettings.activeProviderId) || currentBotSettings.providers[0]
+    const activeProvider = currentBotSettings.providers.find(p => p.id === currentBotSettings.activeProviderId)
+    const fallbackProvider = currentBotSettings.providers[0]
     if (activeProvider) {
       currentApiKey = activeProvider.apiKey
+    } else if (fallbackProvider) {
+      currentApiKey = fallbackProvider.apiKey
     }
-    console.log('Bot 设置已更新，活跃服务商:', activeProvider?.name || '未设置')
+    console.log('Bot 设置已更新，活跃服务商:', activeProvider?.name || fallbackProvider?.name || '未设置')
   }
 })
 
@@ -1214,6 +1220,16 @@ app.whenReady().then(() => {
   initSecureStorage() // 初始化安全存储
   loadSelectorsConfig() // 加载选择器配置
   createWindow()
+  
+  // 设置自动更新（仅在非开发模式时启用）
+  if (!isDev) {
+    const autoUpdateService = getAutoUpdateService()
+    autoUpdateService.setMainWindow(mainWindow!)
+    autoUpdateService.checkForUpdates().catch((err) => {
+      logger.warn('自动更新检查失败:', err.message)
+    })
+  }
+  
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })

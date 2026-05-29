@@ -1,0 +1,169 @@
+/* 自定义 intro.js 样式 */
+
+/* 提示框样式 */
+.intro-custom-tooltip {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(99, 102, 241, 0.95));
+  border-radius: 12px;
+  padding: 0;
+  box-shadow: 0 10px 40px rgba(59, 130, 246, 0.3);
+  max-width: 400px;
+}
+
+.intro-custom-tooltip .introjs-tooltip-header {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 12px 16px;
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.intro-custom-tooltip .introjs-tooltip-header::before {
+  content: '📖';
+  font-size: 16px;
+}
+
+.intro-custom-tooltip .introjs-tooltip-title {
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  margin: 0;
+}
+
+.intro-custom-tooltip .introjs-tooltiptext {
+  color: rgba(255, 255, 255, 0.9);
+  padding: 16px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.intro-custom-tooltip .introjs-bullets {
+  padding: 8px 16px;
+}
+
+.intro-custom-tooltip .introjs-bullets ul li a {
+  background: rgba(255, 255, 255, 0.3);
+  width: 8px;
+  height: 8px;
+  transition: all 0.2s ease;
+}
+
+.intro-custom-tooltip .introjs-bullets ul li a:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.intro-custom-tooltip .introjs-bullets ul li a.active {
+  background: white;
+  width: 20px;
+}
+
+.intro-custom-tooltip .introjs-skipbutton {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  padding: 4px 8px;
+  margin-right: 8px;
+}
+
+.intro-custom-tooltip .introjs-skipbutton:hover {
+  color: white;
+}
+
+.intro-custom-tooltip .introjs-prevbutton {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  margin: 8px;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+.intro-custom-tooltip .introjs-prevbutton:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.intro-custom-tooltip .introjs-nextbutton {
+  background: white;
+  color: #3b82f6;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 6px;
+  margin: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.intro-custom-tooltip .introjs-nextbutton:hover {
+  background: #f0f9ff;
+  transform: translateX(2px);
+}
+
+/* 进度条 */
+.intro-custom-tooltip .introjs-progress {
+  background: rgba(255, 255, 255, 0.2);
+  height: 3px;
+  margin: 0 16px 12px;
+  border-radius: 2px;
+}
+
+.intro-custom-tooltip .introjs-progressbar {
+  background: white;
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* 高亮样式 */
+.intro-custom-highlight {
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5);
+  border-radius: 8px;
+  position: relative;
+  z-index: 9999;
+}
+
+/* 步骤编号 */
+.introjs-skip {
+  .introjs-stepnumber {
+    background: #3b82f6;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+}
+
+/* 工具提示框箭头 */
+.introjs-tooltip-reference-layer {
+  .introjs-tooltip {
+    border-radius: 12px;
+  }
+}
+
+/* 覆盖层 */
+.introjs-overlay {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(2px);
+}
+
+/* 开始按钮（首次访问提示） */
+.intro-start-hint {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
