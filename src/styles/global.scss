@@ -1,0 +1,388 @@
+// ============================================
+// 全局样式 - 蓝绿渐变 + 毛玻璃效果（深色主题）
+// ============================================
+
+:root {
+  // 主色调 - 蓝色系
+  --primary-50: #eff6ff;
+  --primary-100: #dbeafe;
+  --primary-200: #bfdbfe;
+  --primary-300: #93c5fd;
+  --primary-400: #60a5fa;
+  --primary-500: #3b82f6;
+  --primary-600: #2563eb;
+  --primary-700: #1d4ed8;
+  --primary-800: #1e40af;
+  --primary-900: #1e3a8a;
+
+  // 辅助色 - 绿色/青色
+  --green-400: #4ade80;
+  --green-500: #22c55e;
+  --green-600: #16a34a;
+  --cyan-400: #22d3ee;
+  --cyan-500: #06b6d4;
+
+  // 渐变
+  --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #06b6d4 50%, #22c55e 100%);
+  --gradient-primary-soft: linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(6,182,212,0.15) 50%, rgba(34,197,94,0.15) 100%);
+  --gradient-bg: linear-gradient(135deg, #0f172a 0%, #1e293b 30%, #0f172a 60%, #172554 100%);
+  --gradient-header: linear-gradient(135deg, #1e3a5f 0%, #0d4f4f 50%, #1a3a2a 100%);
+  --gradient-primary-hover: linear-gradient(135deg, #2563eb 0%, #0891b2 50%, #16a34a 100%);
+
+  // 毛玻璃效果
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-bg-hover: rgba(255, 255, 255, 0.12);
+  --glass-blur: blur(20px);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  --glass-shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.3);
+
+  // 背景色（深色主题）
+  --bg-primary: #0f172a;
+  --bg-secondary: rgba(30, 41, 59, 0.6);
+  --bg-tertiary: rgba(51, 65, 85, 0.4);
+  --bg-app: var(--gradient-bg);
+
+  // 文字色
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --text-quaternary: #475569;
+
+  // 边框色
+  --border-color: rgba(148, 163, 184, 0.15);
+  --border-color-hover: rgba(148, 163, 184, 0.3);
+
+  // 状态色
+  --success-50: rgba(34, 197, 94, 0.1);
+  --success-500: #22c55e;
+  --success-600: #16a34a;
+  --error-50: rgba(239, 68, 68, 0.1);
+  --error-500: #ef4444;
+  --error-600: #dc2626;
+  --warning-50: rgba(245, 158, 11, 0.1);
+  --warning-500: #f59e0b;
+  --warning-600: #d97706;
+  --info-50: rgba(59, 130, 246, 0.1);
+  --info-500: #3b82f6;
+  --info-600: #2563eb;
+  --danger-50: var(--error-50);
+  --danger-500: var(--error-500);
+  --danger-600: var(--error-600);
+
+  // 中性色
+  --gray-50: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-400: #94a3b8;
+  --gray-500: #64748b;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1e293b;
+  --gray-900: #0f172a;
+
+  // 圆角
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+
+  // 字体
+  --font-sans: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+
+  // 字体大小
+  --font-size-sm: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+
+  // 阴影
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  // 过渡
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: var(--font-size-md, 14px);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow: hidden;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+// 深色主题适配
+body.dark-theme {
+  input, textarea, select {
+    background: rgba(15, 23, 42, 0.6);
+    color: var(--text-primary);
+    border-color: var(--glass-border);
+
+    &::placeholder {
+      color: var(--text-tertiary);
+    }
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.2);
+
+    &:hover {
+      background: rgba(148, 163, 184, 0.35);
+    }
+  }
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+}
+
+// ============================================
+// 滚动条美化
+// ============================================
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 3px;
+  transition: background var(--transition-fast);
+
+  &:hover {
+    background: rgba(148, 163, 184, 0.35);
+  }
+}
+
+// 选中文本样式
+::selection {
+  background: var(--primary-200);
+  color: var(--primary-900);
+}
+
+// 焦点样式
+:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+// ============================================
+// 按钮基础样式 - 渐变按钮
+// ============================================
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  transition: all var(--transition-fast);
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+// 主按钮（渐变背景）
+.btn-primary,
+button[class*="primary"] {
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 10px 24px;
+  font-weight: 600;
+  font-size: var(--font-size-md);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.25);
+  transition: all var(--transition-normal);
+
+  &:hover:not(:disabled) {
+    background: var(--gradient-primary-hover);
+    box-shadow: 0 6px 24px rgba(59, 130, 246, 0.35);
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+  }
+}
+
+// ============================================
+// 输入框基础样式
+// ============================================
+input, textarea, select {
+  font-family: inherit;
+  font-size: inherit;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  background: rgba(15, 23, 42, 0.6);
+  color: var(--text-primary);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+
+  &:focus {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  }
+
+  &::placeholder {
+    color: var(--text-tertiary);
+  }
+}
+
+// ============================================
+// 链接样式
+// ============================================
+a {
+  color: var(--primary-600);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+
+  &:hover {
+    color: var(--primary-700);
+  }
+}
+
+// 图片默认样式
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+// ============================================
+// 毛玻璃卡片通用样式
+// ============================================
+.card,
+[class*="card"],
+[class*="Card"] {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--glass-shadow);
+  transition: all var(--transition-normal);
+
+  &:hover {
+    background: var(--glass-bg-hover);
+    box-shadow: var(--glass-shadow-hover);
+  }
+}
+
+// ============================================
+// 动画关键帧
+// ============================================
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+// ============================================
+// 工具类
+// ============================================
+.animate-fade-in {
+  animation: fadeIn var(--transition-normal) forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp var(--transition-normal) forwards;
+}
+
+.animate-slide-down {
+  animation: slideDown var(--transition-normal) forwards;
+}
+
+.animate-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+// ============================================
+// 字体大小工具类
+// ============================================
+.font-size-small {
+  --font-size-sm: 12px;
+  --font-size-md: 13px;
+  --font-size-lg: 14px;
+  html { font-size: 13px; }
+}
+
+.font-size-medium {
+  --font-size-sm: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  html { font-size: 14px; }
+}
+
+.font-size-large {
+  --font-size-sm: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  html { font-size: 16px; }
+}

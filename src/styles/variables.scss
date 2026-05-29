@@ -1,0 +1,86 @@
+// ============================================
+// SCSS 变量 - 蓝绿渐变 + 毛玻璃效果
+// 与 global.scss 中的 CSS 变量保持一致
+// ============================================
+
+// 主色调 - 蓝绿渐变
+$primary-50: #e6faf7;
+$primary-100: #b3f0e8;
+$primary-200: #80e6d9;
+$primary-300: #4ddcca;
+$primary-400: #26d4be;
+$primary-500: #00c9b0;
+$primary-600: #00a893;
+$primary-700: #008776;
+$primary-800: #006659;
+$primary-900: #00453c;
+
+// 蓝色辅助
+$blue-400: #60a5fa;
+$blue-500: #3b82f6;
+$blue-600: #2563eb;
+
+// 渐变
+$gradient-primary: linear-gradient(135deg, #00c9b0 0%, #3b82f6 100%);
+$gradient-primary-hover: linear-gradient(135deg, #00a893 0%, #2563eb 100%);
+$gradient-bg: linear-gradient(135deg, #f0fdfa 0%, #eff6ff 50%, #f0fdfa 100%);
+$gradient-card: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.6) 100%);
+
+// 毛玻璃
+$glass-bg: rgba(255, 255, 255, 0.72);
+$glass-bg-hover: rgba(255, 255, 255, 0.85);
+$glass-border: rgba(255, 255, 255, 0.3);
+$glass-shadow: 0 8px 32px rgba(0, 201, 176, 0.08);
+$glass-shadow-hover: 0 12px 40px rgba(0, 201, 176, 0.15);
+$glass-blur: blur(20px);
+
+// 背景
+$bg-app: linear-gradient(135deg, #f0fdfa 0%, #eff6ff 50%, #f5f3ff 100%);
+$bg-primary: rgba(255, 255, 255, 0.72);
+$bg-secondary: rgba(240, 253, 250, 0.5);
+$bg-tertiary: rgba(239, 246, 255, 0.5);
+
+// 文字
+$text-primary: #0f172a;
+$text-secondary: #475569;
+$text-tertiary: #94a3b8;
+$text-quaternary: #cbd5e1;
+
+// 边框
+$border-color: rgba(0, 201, 176, 0.12);
+$border-color-hover: rgba(0, 201, 176, 0.25);
+
+// 状态色
+$success-50: #ecfdf5;
+$success-500: #10b981;
+$success-600: #059669;
+$danger-50: #fef2f2;
+$danger-500: #ef4444;
+$danger-600: #dc2626;
+$warning-50: #fffbeb;
+$warning-500: #f59e0b;
+$warning-600: #d97706;
+$info-50: #eff6ff;
+$info-500: #3b82f6;
+$info-600: #2563eb;
+
+// 圆角
+$radius-sm: 8px;
+$radius-md: 12px;
+$radius-lg: 16px;
+$radius-xl: 20px;
+$radius-2xl: 24px;
+
+// 字体
+$font-sans: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+$font-mono: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+
+// 字体大小
+$font-size-sm: 13px;
+$font-size-md: 14px;
+$font-size-lg: 16px;
+
+// 过渡
+$transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+$transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+$transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
