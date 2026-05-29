@@ -62,21 +62,33 @@
   },
   "build": {
     "appId": "com.pilaoban.grading-tool",
-    "productName": "皮老板智能阅卷工具 v2.1.1",
+    "productName": "皮老板智能阅卷工具",
     "copyright": "Copyright © 2026 皮老板",
     "directories": {
       "output": "release"
     },
     "files": [
       "dist/**/*",
-      "assets/**/*"
+      "assets/**/*",
+      "config/**/*"
     ],
     "asar": true,
     "asarUnpack": [
       "dist/main/**/*"
     ],
+    "publish": {
+      "provider": "github",
+      "owner": "wenlong-pei",
+      "repo": "IMA"
+    },
     "win": {
       "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
         {
           "target": "portable",
           "arch": [
@@ -86,6 +98,15 @@
       ],
       "signAndEditExecutable": false,
       "verifyUpdateCodeSignature": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "皮老板智能阅卷工具",
+      "artifactName": "皮老板智能阅卷工具-Setup-${version}.exe"
     },
     "portable": {
       "artifactName": "皮老板智能阅卷工具-${version}-绿色版.exe"
