@@ -52,6 +52,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     model: config.model,
     timeout: config.timeout,
   }),
+
+  // 安全存储（API Key 加密）
+  secureStorage: {
+    get: (key: string) => ipcRenderer.invoke('secure:get', key),
+    set: (key: string, value: string) => ipcRenderer.invoke('secure:set', key, value),
+    delete: (key: string) => ipcRenderer.invoke('secure:delete', key),
+    has: (key: string) => ipcRenderer.invoke('secure:has', key),
+    isAvailable: () => ipcRenderer.invoke('secure:is-available'),
+  },
 })
 
 // TypeScript 类型声明
@@ -70,6 +79,13 @@ export interface ElectronAPI {
   send: (channel: string, ...args: any[]) => void
   on: (channel: string, callback: (...args: any[]) => void) => void
   off: (channel: string) => void
+  secureStorage: {
+    get: (key: string) => Promise<string | null>
+    set: (key: string, value: string) => Promise<boolean>
+    delete: (key: string) => Promise<boolean>
+    has: (key: string) => Promise<boolean>
+    isAvailable: () => Promise<boolean>
+  }
 }
 
 declare global {

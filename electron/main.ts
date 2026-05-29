@@ -1,7 +1,124 @@
-import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell, safeStorage } from 'electron'
 import * as path from 'path'
 import * as fs from 'fs'
 import axios from 'axios'
+
+// 安全存储
+let secureStorage: { get: (key: string) => string | null; set: (key: string, value: string) => void; delete: (key: string) => void; has: (key: string) => boolean; isAvailable: () => boolean } | null = null
+
+// 选择器管理器
+interface SelectorConfig {
+  description?: string
+  legacy?: string
+  modern?: string
+  fallback?: string[]
+  placeholder?: string
+  text?: string
+  selectors?: string[]
+  allModern?: string  // 全部分数输入框（新版本）
+}
+
+interface SelectorsConfig {
+  name: string
+  version: string
+  platforms: {
+    [key: string]: {
+      name: string
+      domains: string[]
+      selectors: {
+        answerImages: SelectorConfig
+        scoreInput: SelectorConfig
+        submitButton: SelectorConfig
+        nextButton: SelectorConfig
+        questionTitle: SelectorConfig
+      }
+    }
+  }
+}
+
+let selectorsConfig: SelectorsConfig | null = null
+
+// 加载选择器配置
+function loadSelectorsConfig(): boolean {
+  try {
+    // 开发环境
+    const devPath = path.join(process.cwd(), 'config', 'selectors.json')
+    // 生产环境
+    const prodPath = path.join(app.getPath('userData'), 'selectors.json')
+
+    const configPath = fs.existsSync(prodPath) ? prodPath : 
+                       fs.existsSync(devPath) ? devPath : null
+
+    if (configPath) {
+      const content = fs.readFileSync(configPath, 'utf-8')
+      selectorsConfig = JSON.parse(content)
+      console.log(`[Selectors] Loaded from: ${configPath}`)
+      return true
+    }
+  } catch (error) {
+    console.error('[Selectors] Load failed:', error)
+  }
+  return false
+}
+
+// 获取选择器
+function getSelector(platform: string, key: string): string[] {
+  if (!selectorsConfig?.platforms[platform]?.selectors) {
+    return [] // 返回空数组会使用默认选择器
+  }
+  const selector = (selectorsConfig.platforms[platform].selectors as any)[key]
+  if (!selector) return []
+
+  const result: string[] = []
+  if (selector.modern) result.push(selector.modern)
+  if (selector.legacy) result.push(selector.legacy)
+  if (selector.placeholder) result.push(selector.placeholder)
+  if (selector.fallback) result.push(...selector.fallback)
+  return result
+}
+
+// 初始化安全存储
+function initSecureStorage() {
+  try {
+    if (safeStorage.isEncryptionAvailable()) {
+      const storagePath = path.join(app.getPath('userData'), 'secure-store.json')
+      let storageData: Record<string, string> = {}
+      
+      if (fs.existsSync(storagePath)) {
+        storageData = JSON.parse(fs.readFileSync(storagePath, 'utf-8'))
+      }
+      
+      secureStorage = {
+        isAvailable: () => safeStorage.isEncryptionAvailable(),
+        get: (key: string) => {
+          const encrypted = storageData[key]
+          if (!encrypted) return null
+          try {
+            const buffer = Buffer.from(encrypted, 'base64')
+            return safeStorage.decryptString(buffer)
+          } catch {
+            return null
+          }
+        },
+        set: (key: string, value: string) => {
+          const encrypted = safeStorage.encryptString(value).toString('base64')
+          storageData[key] = encrypted
+          fs.writeFileSync(storagePath, JSON.stringify(storageData, null, 2))
+        },
+        delete: (key: string) => {
+          delete storageData[key]
+          fs.writeFileSync(storagePath, JSON.stringify(storageData, null, 2))
+        },
+        has: (key: string) => key in storageData,
+      }
+      console.log('[SecureStorage] Initialized successfully')
+    } else {
+      console.warn('[SecureStorage] Encryption not available')
+    }
+  } catch (error) {
+    console.error('[SecureStorage] Init failed:', error)
+  }
+}
 
 // 动态导入 Playwright（避免主进程加载过慢）
 let chromium: any = null
@@ -54,6 +171,14 @@ const selectors = {
   nextButton: '.next-btn, .btn-next, [class*="next"]',
 }
 
+// 通用选择器
+const COMMON_SELECTORS = {
+  answerImage: 'img[src*="answer"], img[src*="student"], img[class*="answer"]',
+  scoreInput: 'input[type="number"], input[placeholder*="分"]',
+  submitButton: 'button:contains("提交"), button:contains("保存"), button[type="submit"]',
+  nextButton: '.next-btn, .btn-next, [class*="next"]',
+}
+
 // 智学网专用选择器（参考 AI-Marker-Suite）
 interface ZhixueSelectors {
   ANSWER_IMAGE: string
@@ -66,6 +191,25 @@ interface ZhixueSelectors {
   SUBMIT_BUTTON_NEW: string
 }
 
+// 获取智学网选择器（优先从配置文件读取）
+function getZhixueSelectors(): ZhixueSelectors {
+  const selectors = selectorsConfig?.platforms?.zhixue?.selectors
+  
+  return {
+    // 旧版UI
+    ANSWER_IMAGE: selectors?.answerImages?.legacy || 'div[name="topicImg"] img',
+    SCORE_INPUT: selectors?.scoreInput?.legacy || 'input[type="number"]',
+    SCORE_INPUT_PLACEHOLDER: selectors?.scoreInput?.placeholder || 'input[placeholder*="分"]',
+    SUBMIT_BUTTON_TEXT: selectors?.submitButton?.text || '提交分数',
+    // 新版UI (2025年5月改版)
+    ANSWER_IMAGE_NEW: selectors?.answerImages?.modern || '.enhance-definition-bright',
+    SCORE_INPUT_NEW: selectors?.scoreInput?.modern || '#txt_marking_17',
+    SCORE_INPUT_ALL_NEW: selectors?.scoreInput?.allModern || '#txt_marking_all',
+    SUBMIT_BUTTON_NEW: selectors?.submitButton?.modern || '#bnt_save',
+  }
+}
+
+// 默认选择器（用于兼容）
 const ZHIXUE_SELECTORS: ZhixueSelectors = {
   // 旧版UI
   ANSWER_IMAGE: 'div[name="topicImg"] img',
@@ -183,15 +327,44 @@ ipcMain.on('bot:setApiKey', (_, apiKey: string) => {
 ipcMain.on('bot:updateBotSettings', (_, settings: BotSettings) => {
   currentBotSettings = settings
   // 兼容旧逻辑：同步活跃服务商的 API Key
-  const activeProvider = currentBotSettings.providers.find(p => p.id === currentBotSettings.activeProviderId) || currentBotSettings.providers[0]
-  if (activeProvider) {
-    currentApiKey = activeProvider.apiKey
+  if (currentBotSettings.providers && currentBotSettings.providers.length > 0) {
+    const activeProvider = currentBotSettings.providers.find(p => p.id === currentBotSettings.activeProviderId) || currentBotSettings.providers[0]
+    if (activeProvider) {
+      currentApiKey = activeProvider.apiKey
+    }
+    console.log('Bot 设置已更新，活跃服务商:', activeProvider?.name || '未设置')
   }
-  console.log('Bot 设置已更新，活跃服务商:', activeProvider?.name || '未设置')
 })
 
 ipcMain.handle('bot:get-settings', () => {
   return currentBotSettings
+})
+
+// ============ 安全存储 ============
+ipcMain.handle('secure:get', (_, key: string) => {
+  if (!secureStorage) return null
+  return secureStorage.get(key)
+})
+
+ipcMain.handle('secure:set', (_, key: string, value: string) => {
+  if (!secureStorage) return false
+  secureStorage.set(key, value)
+  return true
+})
+
+ipcMain.handle('secure:delete', (_, key: string) => {
+  if (!secureStorage) return false
+  secureStorage.delete(key)
+  return true
+})
+
+ipcMain.handle('secure:has', (_, key: string) => {
+  if (!secureStorage) return false
+  return secureStorage.has(key)
+})
+
+ipcMain.handle('secure:is-available', () => {
+  return safeStorage.isEncryptionAvailable()
 })
 
 // ============ PaddleOCR 服务配置 ============
@@ -396,7 +569,7 @@ ipcMain.handle('bot:analyze', async () => {
         questionContent,
         pageTitle
       }
-    }, ZHIXUE_SELECTORS)
+    }, getZhixueSelectors())
 
     // 如果不是智学网页面，返回不支持
     if (!pageInfo.isZhixue) {
@@ -412,13 +585,13 @@ ipcMain.handle('bot:analyze', async () => {
       return !!(document.querySelector(selectors.SCORE_INPUT_PLACEHOLDER) ||
                 document.querySelector(selectors.SCORE_INPUT_ALL_NEW) ||
                 document.querySelector(selectors.SCORE_INPUT))
-    }, ZHIXUE_SELECTORS)
+    }, getZhixueSelectors())
 
     const submitButton = await gradingPage.evaluate((selectors: ZhixueSelectors) => {
       return !!(document.querySelector(selectors.SUBMIT_BUTTON_NEW) ||
                 Array.from(document.querySelectorAll('button')).some(btn =>
                   btn.textContent?.includes(selectors.SUBMIT_BUTTON_TEXT)))
-    }, ZHIXUE_SELECTORS)
+    }, getZhixueSelectors())
 
     return {
       found: hasAnswerImage && scoreInput,
@@ -486,7 +659,7 @@ ipcMain.handle('bot:capture', async () => {
         imgs = document.querySelectorAll(selectors.ANSWER_IMAGE_NEW)
       }
       return Array.from(imgs).map(img => (img as HTMLImageElement).src).filter(src => src)
-    }, ZHIXUE_SELECTORS)
+    }, getZhixueSelectors())
 
     if (imageUrls.length === 0) {
       console.error('未找到智学网答题图片')
@@ -775,7 +948,10 @@ ipcMain.handle('bot:recognize', async (_, imageBase64: string) => {
 ipcMain.handle('bot:grade', async (_, text: string, standard: any) => {
   try {
     // 获取活跃服务商配置
-    const activeProvider = currentBotSettings.providers.find(p => p.id === currentBotSettings.activeProviderId) || currentBotSettings.providers[0]
+    let activeProvider = null
+    if (currentBotSettings.providers && currentBotSettings.providers.length > 0) {
+      activeProvider = currentBotSettings.providers.find(p => p.id === currentBotSettings.activeProviderId) || currentBotSettings.providers[0]
+    }
 
     // 如果没有配置活跃服务商或 API Key，使用本地评分
     if (!activeProvider || !activeProvider.apiKey) {
@@ -943,7 +1119,7 @@ ipcMain.handle('bot:submit', async (_, score: number) => {
         return true
       }
       return false
-    }, score, ZHIXUE_SELECTORS)
+    }, score, getZhixueSelectors())
     
     await gradingPage.waitForTimeout(300)
 
@@ -968,7 +1144,7 @@ ipcMain.handle('bot:submit', async (_, score: number) => {
         return true
       }
       return false
-    }, ZHIXUE_SELECTORS)
+    }, getZhixueSelectors())
     
     if (!submitSuccess) {
       // 降级：尝试按 Enter 键
@@ -1035,6 +1211,8 @@ ipcMain.handle('bot:close', async () => {
 
 // ============ 应用生命周期 ============
 app.whenReady().then(() => {
+  initSecureStorage() // 初始化安全存储
+  loadSelectorsConfig() // 加载选择器配置
   createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
