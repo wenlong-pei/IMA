@@ -42,7 +42,7 @@ let paddleOcrConfig = {
   serverUrl: 'https://paddleocr.aistudio-app.com/api/v2/ocr/jobs',
   pipeline: 'PaddleOCR-VL-1.5',
   source: 'aistudio',
-  aistudioToken: '2adb2996e55b2b73d12c41d09864660e141cc63e',
+  aistudioToken: '',
   qianfanApiKey: '',
 }
 

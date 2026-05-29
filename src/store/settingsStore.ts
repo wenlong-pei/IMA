@@ -61,7 +61,7 @@ const defaultSettings: AppSettings = {
   temperature: 0.3,
   maxTokens: 500,
   paddleOcrEnabled: true,
-  paddleOcrToken: '2adb2996e55b2b73d12c41d09864660e141cc63e',
+  paddleOcrToken: '',
   paddleOcrUrl: 'https://paddleocr.aistudio-app.com/api/v2/ocr/jobs',
   paddleOcrModel: 'PaddleOCR-VL-1.5',
   paddleOcrTimeout: 300,
