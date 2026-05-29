@@ -125,7 +125,7 @@ export function startIntroGuide() {
     localStorage.setItem('pilaoban_intro_completed', 'true')
   })
 
-  intro.onkip(() => {
+  intro.onskip(() => {
     localStorage.setItem('pilaoban_intro_completed', 'true')
   })
 

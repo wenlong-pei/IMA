@@ -238,7 +238,7 @@ function createWindow() {
     minHeight: 700,
     frame: false,
     backgroundColor: '#f8fafc',
-    title: '皮老板智能阅卷工具 v2.1.1',
+    title: '皮老板智能阅卷工具 v2.1.3',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

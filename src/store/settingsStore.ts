@@ -168,7 +168,9 @@ export const useSettingsStore = create<SettingsState>()(
         // 同步活跃服务商配置到主进程
         const currentState = get().settings
         if (api?.updateBotSettings) {
-          syncProvidersToMain(api, currentState.providers, currentState.activeProviderId, currentState.temperature, currentState.maxTokens)
+          syncProvidersToMain(api, currentState.providers, currentState.activeProviderId, currentState.temperature, currentState.maxTokens).catch(err => {
+            console.error('Failed to sync providers in loadApiKeys:', err)
+          })
         }
       },
 
@@ -215,7 +217,9 @@ export const useSettingsStore = create<SettingsState>()(
         // 同步活跃服务商配置到主进程
         if (api?.updateBotSettings) {
           // 获取所有解密后的 API Keys
-          syncProvidersToMain(api, currentState.providers, currentState.activeProviderId, currentState.temperature, currentState.maxTokens)
+          syncProvidersToMain(api, currentState.providers, currentState.activeProviderId, currentState.temperature, currentState.maxTokens).catch(err => {
+            console.error('Failed to sync providers in updateSettings:', err)
+          })
         }
         
         // 如果更新了 PaddleOCR 配置
@@ -249,7 +253,9 @@ export const useSettingsStore = create<SettingsState>()(
         const currentState = get().settings
         const api = getElectronAPI()
         if (api?.updateBotSettings) {
-          syncProvidersToMain(api, currentState.providers, currentState.activeProviderId, currentState.temperature, currentState.maxTokens)
+          syncProvidersToMain(api, currentState.providers, currentState.activeProviderId, currentState.temperature, currentState.maxTokens).catch(err => {
+            console.error('Failed to sync providers in updateProvider:', err)
+          })
         }
       },
 
@@ -268,7 +274,9 @@ export const useSettingsStore = create<SettingsState>()(
         // 删除存储的 API Key
         const api = getElectronAPI()
         if (api?.secureStorage) {
-          api.secureStorage.delete(`${API_KEY_PREFIX}${providerId}`)
+          api.secureStorage.delete(`${API_KEY_PREFIX}${providerId}`).catch((err: any) => {
+            console.error('Failed to delete API key:', err)
+          })
         }
         
         set((state) => ({
@@ -298,7 +306,9 @@ export const useSettingsStore = create<SettingsState>()(
         const currentState = get().settings
         const api = getElectronAPI()
         if (api?.updateBotSettings) {
-          syncProvidersToMain(api, currentState.providers, providerId, currentState.temperature, currentState.maxTokens)
+          syncProvidersToMain(api, currentState.providers, providerId, currentState.temperature, currentState.maxTokens).catch(err => {
+            console.error('Failed to sync providers in setActiveProvider:', err)
+          })
         }
       },
 
@@ -312,10 +322,18 @@ export const useSettingsStore = create<SettingsState>()(
         const api = getElectronAPI()
         if (api?.secureStorage) {
           const currentProviders = get().settings.providers
-          currentProviders.forEach(p => {
-            api.secureStorage.delete(`${API_KEY_PREFIX}${p.id}`)
+          Promise.all([
+            ...currentProviders.map(p => 
+              api.secureStorage.delete(`${API_KEY_PREFIX}${p.id}`).catch((err: any) => {
+                console.error('Failed to delete API key:', err)
+              })
+            ),
+            api.secureStorage.delete(PADDLE_OCR_KEY).catch((err: any) => {
+              console.error('Failed to delete PaddleOCR key:', err)
+            })
+          ]).catch(err => {
+            console.error('Failed to reset settings:', err)
           })
-          api.secureStorage.delete(PADDLE_OCR_KEY)
         }
         set({ settings: defaultSettings, apiKeysLoaded: false })
       },

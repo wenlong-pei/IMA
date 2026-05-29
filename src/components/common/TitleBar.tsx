@@ -2,7 +2,7 @@ import { Minus, Square, X, Maximize2 } from 'lucide-react'
 import { useState } from 'react'
 import './TitleBar.scss'
 
-const APP_VERSION = '2.1.1'
+const APP_VERSION = '2.1.3'
 
 const api = typeof window !== 'undefined' && (window as any).electronAPI
 

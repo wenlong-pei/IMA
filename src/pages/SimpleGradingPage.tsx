@@ -89,11 +89,17 @@ export default function SimpleGradingPage() {
     logsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [logs])
 
-  // 清理倒计时
+  // 清理倒计时和批改循环
   useEffect(() => {
     return () => {
       if (countdownTimerRef.current) {
         clearInterval(countdownTimerRef.current)
+      }
+      // 组件卸载时停止批改循环
+      if (runningRef.current) {
+        runningRef.current = false
+        pausedRef.current = false
+        gradingBotProxy.stop()
       }
     }
   }, [])

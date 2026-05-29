@@ -21,20 +21,20 @@ export default function UpdateChecker() {
     status: 'idle',
     progress: 0,
   })
-  const [currentVersion] = useState('2.1.1') // 从 package.json 读取
+  const [currentVersion] = useState('2.1.3') // 从 package.json 读取
 
   useEffect(() => {
     // 监听更新状态变化
     if (window.electronAPI?.update) {
-      window.electronAPI.update.onStateChanged((state: UpdateState) => {
+      const unsubscribeState = window.electronAPI.update.onStateChanged((state: UpdateState) => {
         setUpdateState(state)
       })
 
-      window.electronAPI.update.onAvailable((info: UpdateInfo) => {
+      const unsubscribeAvailable = window.electronAPI.update.onAvailable((info: UpdateInfo) => {
         toast.success(`发现新版本: ${info.version}`)
       })
 
-      window.electronAPI.update.onDownloaded(() => {
+      const unsubscribeDownloaded = window.electronAPI.update.onDownloaded(() => {
         toast.success('新版本已下载完成，可以安装更新')
       })
 
@@ -44,6 +44,13 @@ export default function UpdateChecker() {
           setUpdateState(state)
         }
       })
+
+      // 清理函数
+      return () => {
+        unsubscribeState?.()
+        unsubscribeAvailable?.()
+        unsubscribeDownloaded?.()
+      }
     }
   }, [])
 
