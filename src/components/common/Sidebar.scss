@@ -1,55 +1,36 @@
 // ============================================
-// 侧边栏样式 - 蓝绿渐变 + 毛玻璃效果
+// 侧边栏样式 - 简洁统一设计
 // ============================================
 
 .sidebar {
-  width: 240px;
-  background: rgba(255, 255, 255, 0.65);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-right: 1px solid var(--glass-border);
+  width: 220px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   transition: all 0.3s ease;
   position: relative;
 
-  // 左侧装饰条 - 蓝绿渐变
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    background: var(--gradient-primary);
-    opacity: 0;
-    transition: opacity 0.3s;
-  }
-
-  &:hover::before {
-    opacity: 1;
-  }
-
   &__nav {
     flex: 1;
-    padding: 20px 14px;
+    padding: 16px 12px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
   }
 
   &__item {
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 13px 16px;
+    gap: 12px;
+    padding: 12px 14px;
     border-radius: var(--radius-md);
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: var(--font-size-md);
     font-weight: 500;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
+    transition: all 0.2s ease;
     cursor: pointer;
+    text-decoration: none;
 
     &:hover {
       background: var(--bg-tertiary);
@@ -59,20 +40,6 @@
     &--active {
       background: var(--gradient-primary);
       color: white;
-      box-shadow: 0 4px 16px rgba(0, 201, 176, 0.25);
-
-      &::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 4px;
-        height: 24px;
-        background: white;
-        border-radius: 0 4px 4px 0;
-        opacity: 0.6;
-      }
 
       .sidebar__icon {
         color: white;
@@ -80,7 +47,6 @@
 
       &:hover {
         background: var(--gradient-primary-hover);
-        box-shadow: 0 6px 24px rgba(0, 201, 176, 0.35);
       }
     }
   }
@@ -89,8 +55,8 @@
     flex-shrink: 0;
     width: 20px;
     height: 20px;
-    color: var(--primary-500);
-    transition: all 0.2s;
+    color: var(--text-tertiary);
+    transition: color 0.2s;
   }
 
   &__label {
@@ -98,33 +64,27 @@
   }
 
   &__footer {
-    padding: 20px 16px;
+    padding: 16px 12px;
     border-top: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
   }
 
   &__ai-badge {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 16px;
+    padding: 8px 14px;
     background: var(--gradient-primary);
     border-radius: var(--radius-md);
     color: white;
     font-size: 12px;
     font-weight: 600;
-    box-shadow: 0 4px 16px rgba(0, 201, 176, 0.2);
     width: 100%;
     justify-content: center;
-    transition: all var(--transition-normal);
-
-    &:hover {
-      box-shadow: 0 6px 24px rgba(0, 201, 176, 0.35);
-      transform: translateY(-1px);
-    }
+    transition: all 0.2s ease;
 
     svg {
       width: 14px;
@@ -136,6 +96,6 @@
     font-size: 11px;
     color: var(--text-tertiary);
     text-align: center;
-    line-height: 1.5;
+    line-height: 1.4;
   }
 }
