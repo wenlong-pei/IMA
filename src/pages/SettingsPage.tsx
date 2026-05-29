@@ -27,6 +27,7 @@ import { useSettingsStore } from '@/store/settingsStore'
 import { useSound } from '@/hooks/useSound'
 import type { AiProvider } from '@/types'
 import UpdateChecker from '@/components/common/UpdateChecker'
+import ErrorBoundary from '@/components/common/ErrorBoundary'
 import { startIntroGuide, resetIntroGuide } from '@/components/common/IntroGuide'
 import './SettingsPage.scss'
 
@@ -219,6 +220,27 @@ export default function SettingsPage() {
         </nav>
 
         {/* 设置内容 */}
+        <ErrorBoundary fallback={
+          <div className="settings-content">
+            <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+              <p>⚠️ 内容加载失败</p>
+              <button
+                onClick={() => window.location.reload()}
+                style={{
+                  marginTop: '12px',
+                  padding: '8px 16px',
+                  background: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                刷新页面
+              </button>
+            </div>
+          </div>
+        }>
         <div className="settings-content">
           {/* 常规设置 */}
           {activeTab === 'general' && (
@@ -444,11 +466,7 @@ export default function SettingsPage() {
 
           {/* AI设置 - 多服务商管理 */}
           {activeTab === 'ai' && (
-            <motion.div
-              className="settings-section"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-            >
+            <div className="settings-section">
               <h2>AI 服务商设置</h2>
               <p className="section-desc">
                 配置多个 AI 服务商，支持快速切换。点击服务商卡片可设为当前活跃服务商。
@@ -627,7 +645,7 @@ export default function SettingsPage() {
                   <p>请为当前活跃服务商配置 API Key 以启用 AI 批改功能</p>
                 </div>
               )}
-            </motion.div>
+            </div>
           )}
 
           {/* 界面设置 */}
@@ -766,6 +784,7 @@ export default function SettingsPage() {
             </motion.div>
           )}
         </div>
+        </ErrorBoundary>
       </div>
     </div>
   )
