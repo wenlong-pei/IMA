@@ -23,6 +23,7 @@ interface SettingsState {
 // 安全存储的键名前缀
 const API_KEY_PREFIX = 'api_key_'
 const PADDLE_OCR_KEY = 'paddle_ocr_token'
+const SECURED_API_KEY = '__SECURED__'
 
 // 默认服务商（API Key 不存储在此）
 const defaultProviders: AiProvider[] = [
@@ -30,7 +31,7 @@ const defaultProviders: AiProvider[] = [
     id: 'deepseek',
     name: 'DeepSeek',
     endpoint: 'https://api.deepseek.com/v1/chat/completions',
-    apiKey: '__SECURED__', // 标记为安全存储
+    apiKey: SECURED_API_KEY, // 标记为安全存储
     model: 'deepseek-chat',
     isActive: true,
   },
@@ -38,7 +39,7 @@ const defaultProviders: AiProvider[] = [
     id: 'volcengine',
     name: '火山引擎',
     endpoint: 'https://ark.cn-beijing.volces.com/api/v3/chat/completions',
-    apiKey: '__SECURED__',
+    apiKey: SECURED_API_KEY,
     model: '',
     isActive: false,
   },
@@ -46,7 +47,7 @@ const defaultProviders: AiProvider[] = [
     id: 'siliconflow',
     name: '硅基流动',
     endpoint: 'https://api.siliconflow.cn/v1/chat/completions',
-    apiKey: '__SECURED__',
+    apiKey: SECURED_API_KEY,
     model: 'Qwen/Qwen2.5-7B-Instruct',
     isActive: false,
   },
@@ -54,7 +55,7 @@ const defaultProviders: AiProvider[] = [
     id: 'custom',
     name: '自定义 (OpenAI 兼容)',
     endpoint: '',
-    apiKey: '__SECURED__',
+    apiKey: SECURED_API_KEY,
     model: '',
     isActive: false,
   },
@@ -67,12 +68,12 @@ const defaultSettings: AppSettings = {
   confirmBeforeSubmit: false,
   blankDetectionEnabled: false,
   blankDetectionThreshold: 85,
-  providers: defaultProviders,
+  providers: defaultProviders.map(provider => ({ ...provider })),
   activeProviderId: 'deepseek',
   temperature: 0.3,
   maxTokens: 500,
   paddleOcrEnabled: true,
-  paddleOcrToken: '__SECURED__', // 标记为安全存储
+  paddleOcrToken: SECURED_API_KEY, // 标记为安全存储
   paddleOcrUrl: 'https://paddleocr.aistudio-app.com/api/v2/ocr/jobs',
   paddleOcrModel: 'PaddleOCR-VL-1.5',
   paddleOcrTimeout: 300,
@@ -82,6 +83,78 @@ const defaultSettings: AppSettings = {
   theme: 'light',
   fontSize: 'medium',
   showScoreOnImage: true,
+}
+
+function normalizeBoolean(value: unknown, fallback: boolean): boolean {
+  return typeof value === 'boolean' ? value : fallback
+}
+
+function normalizeNumber(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
+}
+
+function normalizeString(value: unknown, fallback: string): string {
+  return typeof value === 'string' ? value : fallback
+}
+
+function cloneDefaultProviders(): AiProvider[] {
+  return defaultProviders.map(provider => ({ ...provider }))
+}
+
+function normalizeProviders(value: unknown, activeProviderId: string): AiProvider[] {
+  const source = Array.isArray(value) && value.length > 0 ? value : cloneDefaultProviders()
+  const providers = source.map((item, index) => {
+    const candidate = (item && typeof item === 'object') ? item as Partial<AiProvider> : {}
+    const fallback = defaultProviders.find(provider => provider.id === candidate.id) || defaultProviders[index] || defaultProviders[0]
+    return {
+      id: normalizeString(candidate.id, fallback.id || uuidv4()),
+      name: normalizeString(candidate.name, fallback.name || 'AI 服务商'),
+      endpoint: normalizeString(candidate.endpoint, fallback.endpoint || ''),
+      apiKey: normalizeString(candidate.apiKey, ''),
+      model: normalizeString(candidate.model, fallback.model || ''),
+      isActive: false,
+    }
+  })
+
+  const hasActiveProvider = providers.some(provider => provider.id === activeProviderId)
+  const normalizedActiveId = hasActiveProvider ? activeProviderId : providers[0]?.id || ''
+  return providers.map((provider, index) => ({
+    ...provider,
+    isActive: normalizedActiveId ? provider.id === normalizedActiveId : index === 0,
+  }))
+}
+
+export function normalizeSettings(value: unknown): AppSettings {
+  const raw = (value && typeof value === 'object') ? value as Partial<AppSettings> : {}
+  const activeProviderId = normalizeString(raw.activeProviderId, defaultSettings.activeProviderId)
+  const providers = normalizeProviders(raw.providers, activeProviderId)
+  const normalizedActiveId = providers.find(provider => provider.isActive)?.id || defaultSettings.activeProviderId
+
+  return {
+    ...defaultSettings,
+    ...raw,
+    soundEnabled: normalizeBoolean(raw.soundEnabled, defaultSettings.soundEnabled),
+    soundVolume: normalizeNumber(raw.soundVolume, defaultSettings.soundVolume),
+    confirmBeforeScore: normalizeBoolean(raw.confirmBeforeScore, defaultSettings.confirmBeforeScore),
+    confirmBeforeSubmit: normalizeBoolean(raw.confirmBeforeSubmit, defaultSettings.confirmBeforeSubmit),
+    blankDetectionEnabled: normalizeBoolean(raw.blankDetectionEnabled, defaultSettings.blankDetectionEnabled),
+    blankDetectionThreshold: normalizeNumber(raw.blankDetectionThreshold, defaultSettings.blankDetectionThreshold),
+    providers,
+    activeProviderId: normalizedActiveId,
+    temperature: normalizeNumber(raw.temperature, defaultSettings.temperature),
+    maxTokens: normalizeNumber(raw.maxTokens, defaultSettings.maxTokens),
+    paddleOcrEnabled: normalizeBoolean(raw.paddleOcrEnabled, defaultSettings.paddleOcrEnabled),
+    paddleOcrToken: normalizeString(raw.paddleOcrToken, defaultSettings.paddleOcrToken),
+    paddleOcrUrl: normalizeString(raw.paddleOcrUrl, defaultSettings.paddleOcrUrl),
+    paddleOcrModel: normalizeString(raw.paddleOcrModel, defaultSettings.paddleOcrModel),
+    paddleOcrTimeout: normalizeNumber(raw.paddleOcrTimeout, defaultSettings.paddleOcrTimeout),
+    autoSaveInterval: normalizeNumber(raw.autoSaveInterval, defaultSettings.autoSaveInterval),
+    batchSize: normalizeNumber(raw.batchSize, defaultSettings.batchSize),
+    retryAttempts: normalizeNumber(raw.retryAttempts, defaultSettings.retryAttempts),
+    theme: raw.theme === 'dark' || raw.theme === 'system' ? raw.theme : defaultSettings.theme,
+    fontSize: raw.fontSize === 'small' || raw.fontSize === 'large' ? raw.fontSize : defaultSettings.fontSize,
+    showScoreOnImage: normalizeBoolean(raw.showScoreOnImage, defaultSettings.showScoreOnImage),
+  }
 }
 
 // 获取 Electron API（仅在 Electron 环境中可用）
@@ -101,12 +174,14 @@ async function syncProvidersToMain(
   maxTokens: number
 ) {
   try {
-    const decryptedProviders = await Promise.all(providers.map(async (p) => ({
+    const safeProviders = normalizeProviders(providers, activeProviderId)
+    const safeActiveProviderId = safeProviders.find(provider => provider.isActive)?.id || activeProviderId
+    const decryptedProviders = await Promise.all(safeProviders.map(async (p) => ({
       id: p.id,
       name: p.name,
       endpoint: p.endpoint,
       model: p.model,
-      isActive: p.id === activeProviderId,
+      isActive: p.id === safeActiveProviderId,
       apiKey: api.secureStorage 
         ? (await api.secureStorage.get(`${API_KEY_PREFIX}${p.id}`) || '')
         : '',
@@ -114,7 +189,7 @@ async function syncProvidersToMain(
     
     api.updateBotSettings({
       providers: decryptedProviders,
-      activeProviderId,
+      activeProviderId: safeActiveProviderId,
       temperature,
       maxTokens,
     })
@@ -126,7 +201,7 @@ async function syncProvidersToMain(
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set, get) => ({
-      settings: defaultSettings,
+      settings: normalizeSettings(defaultSettings),
       apiKeysLoaded: false,
 
       // 从安全存储加载 API Key
@@ -134,16 +209,16 @@ export const useSettingsStore = create<SettingsState>()(
         const api = getElectronAPI()
         if (!api?.secureStorage) return
 
-        set((state) => {
-          const updatedProviders = state.settings.providers.map(p => ({
-            ...p,
-            apiKey: api.secureStorage.has(`${API_KEY_PREFIX}${p.id}`) ? '__SECURED__' : '',
-          }))
-          return {
-            settings: { ...state.settings, providers: updatedProviders },
-            apiKeysLoaded: true,
-          }
-        })
+        const currentSettings = normalizeSettings(get().settings)
+        const updatedProviders = await Promise.all(currentSettings.providers.map(async (p) => ({
+          ...p,
+          apiKey: await api.secureStorage.has(`${API_KEY_PREFIX}${p.id}`) ? SECURED_API_KEY : '',
+        })))
+
+        set((state) => ({
+          settings: normalizeSettings({ ...state.settings, providers: updatedProviders }),
+          apiKeysLoaded: true,
+        }))
       },
 
       // 设置 API Key（加密存储）
@@ -158,10 +233,10 @@ export const useSettingsStore = create<SettingsState>()(
         // 更新状态
         set((state) => {
           const newProviders = state.settings.providers.map(p =>
-            p.id === providerId ? { ...p, apiKey: '__SECURED__' } : p
+            p.id === providerId ? { ...p, apiKey: SECURED_API_KEY } : p
           )
           return {
-            settings: { ...state.settings, providers: newProviders },
+            settings: normalizeSettings({ ...state.settings, providers: newProviders }),
           }
         })
 
@@ -194,7 +269,7 @@ export const useSettingsStore = create<SettingsState>()(
             p.id === providerId ? { ...p, apiKey: '' } : p
           )
           return {
-            settings: { ...state.settings, providers: newProviders },
+            settings: normalizeSettings({ ...state.settings, providers: newProviders }),
           }
         })
       },
@@ -208,7 +283,7 @@ export const useSettingsStore = create<SettingsState>()(
 
       updateSettings: (updates) => {
         set((state) => ({
-          settings: { ...state.settings, ...updates },
+          settings: normalizeSettings({ ...state.settings, ...updates }),
         }))
         
         const currentState = get().settings
@@ -245,7 +320,7 @@ export const useSettingsStore = create<SettingsState>()(
             p.id === providerId ? { ...p, ...updates } : p
           )
           return {
-            settings: { ...state.settings, providers: newProviders },
+            settings: normalizeSettings({ ...state.settings, providers: newProviders }),
           }
         })
         
@@ -262,10 +337,10 @@ export const useSettingsStore = create<SettingsState>()(
       addProvider: (provider) => {
         const id = uuidv4()
         set((state) => ({
-          settings: {
+          settings: normalizeSettings({
             ...state.settings,
             providers: [...state.settings.providers, { ...provider, id, isActive: false }],
-          },
+          }),
         }))
         return id
       },
@@ -280,26 +355,26 @@ export const useSettingsStore = create<SettingsState>()(
         }
         
         set((state) => ({
-          settings: {
+          settings: normalizeSettings({
             ...state.settings,
             providers: state.settings.providers.filter(p => p.id !== providerId),
             activeProviderId: state.settings.activeProviderId === providerId
               ? state.settings.providers[0]?.id || ''
               : state.settings.activeProviderId,
-          },
+          }),
         }))
       },
 
       setActiveProvider: (providerId) => {
         set((state) => ({
-          settings: {
+          settings: normalizeSettings({
             ...state.settings,
             activeProviderId: providerId,
             providers: state.settings.providers.map(p => ({
               ...p,
               isActive: p.id === providerId,
             })),
-          },
+          }),
         }))
         
         // 同步到主进程
@@ -314,14 +389,15 @@ export const useSettingsStore = create<SettingsState>()(
 
       getActiveProvider: () => {
         const { settings } = get()
-        return settings.providers.find(p => p.id === settings.activeProviderId) || settings.providers[0]
+        const normalizedSettings = normalizeSettings(settings)
+        return normalizedSettings.providers.find(p => p.id === normalizedSettings.activeProviderId) || normalizedSettings.providers[0]
       },
 
       resetSettings: () => {
         // 清除所有安全存储的 API Keys
         const api = getElectronAPI()
         if (api?.secureStorage) {
-          const currentProviders = get().settings.providers
+          const currentProviders = normalizeSettings(get().settings).providers
           Promise.all([
             ...currentProviders.map(p => 
               api.secureStorage.delete(`${API_KEY_PREFIX}${p.id}`).catch((err: any) => {
@@ -335,12 +411,27 @@ export const useSettingsStore = create<SettingsState>()(
             console.error('Failed to reset settings:', err)
           })
         }
-        set({ settings: defaultSettings, apiKeysLoaded: false })
+        set({ settings: normalizeSettings(defaultSettings), apiKeysLoaded: false })
       },
     }),
     {
       name: 'grading-settings',
+      merge: (persistedState, currentState) => {
+        const persisted = (persistedState && typeof persistedState === 'object')
+          ? persistedState as Partial<SettingsState>
+          : {}
+        return {
+          ...currentState,
+          ...persisted,
+          settings: normalizeSettings(persisted.settings),
+          apiKeysLoaded: false,
+        }
+      },
       onRehydrateStorage: () => (state) => {
+        if (state?.settings) {
+          state.settings = normalizeSettings(state.settings)
+        }
+
         // 应用恢复时加载安全存储的 API Keys
         const api = getElectronAPI()
         if (api?.secureStorage && state?.settings) {
@@ -349,7 +440,15 @@ export const useSettingsStore = create<SettingsState>()(
           
           // 同步服务商配置到主进程（不包含敏感信息）
           if (api.updateBotSettings) {
-            syncProvidersToMain(api, state.settings.providers, state.settings.activeProviderId, state.settings.temperature, state.settings.maxTokens)
+            syncProvidersToMain(
+              api,
+              state.settings.providers,
+              state.settings.activeProviderId,
+              state.settings.temperature,
+              state.settings.maxTokens
+            ).catch(err => {
+              console.error('Failed to sync providers during rehydrate:', err)
+            })
           }
         }
         // 同步 PaddleOCR 配置到主进程
@@ -358,7 +457,7 @@ export const useSettingsStore = create<SettingsState>()(
           if (api?.configurePaddleOCR) {
             api.configurePaddleOCR({
               enabled: state.settings.paddleOcrEnabled,
-              token: '__SECURED__',
+              token: SECURED_API_KEY,
               serverUrl: state.settings.paddleOcrUrl,
               model: state.settings.paddleOcrModel,
               timeout: state.settings.paddleOcrTimeout,

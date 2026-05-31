@@ -249,7 +249,7 @@ export default function SimpleGradingPage() {
         const electronAPI = (window as any).electronAPI
         try {
           const response = await electronAPI.invoke('bot:analyzeCorrection', {
-            aiScore: stats.currentScore,
+            aiScore: useGradingStore.getState().stats.currentScore,
             teacherScore: score,
             reason: correctionReason,
             standard: currentStandard,
@@ -273,19 +273,19 @@ export default function SimpleGradingPage() {
     addLog(`提交纠错分数: ${score}分`, 'success')
     playSuccess()
     confirmResolveRef.current?.(score)
-  }, [correctionScore, correctionReason, stats.currentScore, currentStandard, recognizedText])
+  }, [correctionScore, correctionReason, currentStandard, recognizedText])
 
   const cancelCorrection = useCallback(() => {
     addLog('取消纠错，使用AI评分', 'info')
-    confirmResolveRef.current?.(stats.currentScore || 0)
-  }, [stats.currentScore])
+    confirmResolveRef.current?.(useGradingStore.getState().stats.currentScore || 0)
+  }, [])
 
   // 确认提交（试改模式）
   const confirmTrialSubmit = useCallback(() => {
     addLog('教师确认，提交AI评分', 'success')
     playSuccess()
-    confirmResolveRef.current?.(stats.currentScore || 0)
-  }, [stats.currentScore])
+    confirmResolveRef.current?.(useGradingStore.getState().stats.currentScore || 0)
+  }, [])
 
   // 开始自动批改
   const handleCapture = async () => {

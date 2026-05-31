@@ -5,13 +5,19 @@
   "platforms": {
     "zhixue": {
       "name": "智学网",
-      "domains": ["zhixue.com", "zhixueyun.com"],
+      "domains": [
+        "zhixue.com",
+        "zhixueyun.com"
+      ],
       "selectors": {
         "answerImages": {
           "description": "答题图片选择器",
           "legacy": "div[name=\"topicImg\"] img",
           "modern": ".enhance-definition-bright",
-          "fallback": ["img[class*=\"answer\"]", "img[class*=\"student\"]"]
+          "fallback": [
+            "img[class*=\"answer\"]",
+            "img[class*=\"student\"]"
+          ]
         },
         "scoreInput": {
           "description": "分数输入框选择器",
@@ -24,12 +30,19 @@
           "description": "提交按钮选择器",
           "text": "提交分数",
           "modern": "#bnt_save",
-          "fallback": ["button:contains('提交')", "button:contains('保存')"]
+          "fallback": [
+            "button",
+            "//button[contains(text(),'??')]",
+            "//button[contains(text(),'??')]"
+          ]
         },
         "nextButton": {
           "description": "下一题按钮选择器",
           "text": "下一题",
-          "fallback": ["button:contains('下一')", "a:contains('下一')"]
+          "fallback": [
+            "//button[contains(text(),'??')]",
+            "//a[contains(text(),'??')]"
+          ]
         },
         "questionTitle": {
           "description": "题目标题选择器",
@@ -45,8 +58,8 @@
     }
   },
   "metadata": {
-    "lastUpdated": "2024-05-29",
+    "lastUpdated": "2026-05-31",
     "author": "皮老板",
-    "usage": "此配置文件可自定义选择器，工具会自动尝试多种选择器"
+    "usage": "???Playwright CSS ????? jQuery ? :contains() ???????????? XPath"
   }
 }

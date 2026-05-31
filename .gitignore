@@ -44,3 +44,10 @@ desktop.ini
 *.tmp
 *.bak
 *.cache
+
+# npm cache (local)
+.npm-cache/
+
+# Archive files
+*.tar
+*.tar.gz

@@ -721,70 +721,39 @@ async function fetchImageAsBase64(imageUrl: string): Promise<string | null> {
   }
 }
 
-// 截图 - 智学网专用：通过 DOM 选择器获取图片 URL
-ipcMain.handle('bot:capture', async () => {
+// ???????????
+async function captureAnswerImage(): Promise<string | null> {
   if (!gradingPage) return null
   try {
-    // 使用智学网专用选择器获取图片 URL
     const imageUrls = await gradingPage.evaluate((selectors: ZhixueSelectors) => {
-      // 先尝试旧版选择器
       let imgs = document.querySelectorAll(selectors.ANSWER_IMAGE)
       if (imgs.length === 0) {
-        // 尝试新版选择器
         imgs = document.querySelectorAll(selectors.ANSWER_IMAGE_NEW)
       }
       return Array.from(imgs).map(img => (img as HTMLImageElement).src).filter(src => src)
     }, getZhixueSelectors())
 
     if (imageUrls.length === 0) {
-      console.error('未找到智学网答题图片')
+      console.error('??????????')
       return null
     }
 
-    // 获取第一张图片并转为 base64
     const base64Image = await fetchImageAsBase64(imageUrls[0])
     if (base64Image) {
-      console.log(`成功获取智学网图片: ${imageUrls[0].substring(0, 100)}...`)
+      console.log(`?????????: ${imageUrls[0].substring(0, 100)}...`)
     }
     return base64Image
   } catch (error) {
-    console.error('获取图片失败:', error)
+    console.error('??????:', error)
     return null
   }
-})
+}
 
-// 自动获取图片 - 智学网专用
-ipcMain.handle('bot:capture-auto', async () => {
-  // 直接调用 capture 逻辑，复用代码
-  if (!gradingPage) return null
-  try {
-    // 使用智学网专用选择器获取图片 URL
-    const imageUrls = await gradingPage.evaluate((selectors: ZhixueSelectors) => {
-      // 先尝试旧版选择器
-      let imgs = document.querySelectorAll(selectors.ANSWER_IMAGE)
-      if (imgs.length === 0) {
-        // 尝试新版选择器
-        imgs = document.querySelectorAll(selectors.ANSWER_IMAGE_NEW)
-      }
-      return Array.from(imgs).map(img => (img as HTMLImageElement).src).filter(src => src)
-    }, getZhixueSelectors())
+// ?? DOM ??????? URL
+ipcMain.handle('bot:capture', async () => captureAnswerImage())
 
-    if (imageUrls.length === 0) {
-      console.error('未找到智学网答题图片')
-      return null
-    }
-
-    // 获取第一张图片并转为 base64
-    const base64Image = await fetchImageAsBase64(imageUrls[0])
-    if (base64Image) {
-      console.log(`成功获取智学网图片: ${imageUrls[0].substring(0, 100)}...`)
-    }
-    return base64Image
-  } catch (error) {
-    console.error('获取图片失败:', error)
-    return null
-  }
-})
+// ?????? - ??????
+ipcMain.handle('bot:capture-auto', async () => captureAnswerImage())
 
 // ============ OCR识别（支持 PaddleOCR-VL-1.5 服务）============
 // PaddleOCR-VL-1.5 模型大小约 1-1.5GB，如需本地部署请参考官方文档
@@ -1329,8 +1298,22 @@ app.whenReady().then(() => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+// ??/??/??/??
+ipcMain.on('bot:start', () => { isRunning = true })
+ipcMain.on('bot:pause', () => {
+  isRunning = false
+  // ????????? gradingPage ??????
 })
-
-app.on('window-all-closed', () => {
+ipcMain.on('bot:resume', () => { isRunning = true })
+ipcMain.on('bot:stop', () => {
+  isRunning = false
+  // stop ????????
+  if (gradingBrowser) {
+    gradingBrowser.close().catch((err: any) => console.error('???????:', err))
+    gradingBrowser = null
+    gradingContext = null
+    gradingPage = null
+  }
+})
   if (process.platform !== 'darwin') app.quit()
 })

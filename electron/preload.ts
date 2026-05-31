@@ -5,7 +5,13 @@ const VALID_CHANNELS: Record<string, string[]> = {
   // 窗口控制
   send: ['window-minimize', 'window-maximize', 'window-close'],
   // 对话框
-  invoke: ['dialog:openFile', 'dialog:saveFile'],
+  invoke: ['dialog:openFile', 'dialog:saveFile',
+    // Bot ???????????
+    'bot:launch', 'bot:connect', 'bot:navigate', 'bot:analyze',
+    'bot:capture', 'bot:capture-auto', 'bot:recognize',
+    'bot:grade', 'bot:submit', 'bot:next', 'bot:close',
+    'bot:analyzeCorrection',
+  ],
   // 文件操作（受限制）
   file: ['file:read', 'file:write', 'file:readImage'],
   // 外部链接
@@ -29,6 +35,22 @@ function validateChannel(type: keyof typeof VALID_CHANNELS, channel: string): bo
 
 // 暴露给渲染进程的API
 contextBridge.exposeInMainWorld('electronAPI', {
+  // ?? invoke????????????? Bot ?????????
+  invoke: (channel, ...args) => {
+    if (validateChannel('invoke', channel) || validateChannel('bot', channel)) {
+      return ipcRenderer.invoke(channel, ...args)
+    }
+    throw new Error(`IPC channel "${channel}" is not allowed`)
+  },
+  // ?? send???????????
+  send: (channel, ...args) => {
+    if (validateChannel('send', channel) || validateChannel('bot', channel)) {
+      ipcRenderer.send(channel, ...args)
+      return
+    }
+    throw new Error(`IPC channel "${channel}" is not allowed`)
+  },
+
   // 窗口控制
   minimizeWindow: () => ipcRenderer.send('window-minimize'),
   maximizeWindow: () => ipcRenderer.send('window-maximize'),
@@ -114,6 +136,8 @@ interface UpdateState {
 
 // TypeScript 类型声明
 export interface ElectronAPI {
+  invoke: (channel, ...args) => Promise<unknown>
+  send: (channel, ...args) => void
   minimizeWindow: () => void
   maximizeWindow: () => void
   closeWindow: () => void

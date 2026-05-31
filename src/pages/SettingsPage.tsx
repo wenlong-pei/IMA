@@ -39,6 +39,7 @@ export default function SettingsPage() {
   const [hasChanges, setHasChanges] = useState(false)
   const [testingProviderId, setTestingProviderId] = useState<string | null>(null)
   const [testResult, setTestResult] = useState<{ providerId: string; success: boolean; message: string } | null>(null)
+  const providers = Array.isArray(settings.providers) ? settings.providers : []
 
   // 字体大小设置生效：将对应的 CSS 类应用到 documentElement
   useEffect(() => {
@@ -510,7 +511,7 @@ export default function SettingsPage() {
 
               {/* 服务商列表 */}
               <div className="provider-list">
-                {settings.providers.map((provider) => (
+                {providers.map((provider) => (
                   <div
                     key={provider.id}
                     className={`provider-card ${provider.isActive ? 'provider-card--active' : ''}`}
@@ -639,7 +640,14 @@ export default function SettingsPage() {
               </div>
 
               {/* 警告 */}
-              {!settings.providers.some(p => p.isActive && p.apiKey) && (
+              {providers.length === 0 && (
+                <div className="api-warning">
+                  <AlertCircle size={18} />
+                  <p>AI 服务商配置缺失，请添加一个服务商后继续使用 AI 批改功能</p>
+                </div>
+              )}
+
+              {providers.length > 0 && !providers.some(p => p.isActive && p.apiKey) && (
                 <div className="api-warning">
                   <AlertCircle size={18} />
                   <p>请为当前活跃服务商配置 API Key 以启用 AI 批改功能</p>
