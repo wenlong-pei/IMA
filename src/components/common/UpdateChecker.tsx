@@ -21,7 +21,7 @@ export default function UpdateChecker() {
     status: 'idle',
     progress: 0,
   })
-  const [currentVersion] = useState('2.1.3') // 从 package.json 读取
+  const [currentVersion] = useState(__APP_VERSION__) // 从 package.json 读取
 
   useEffect(() => {
     // 监听更新状态变化
@@ -80,9 +80,11 @@ export default function UpdateChecker() {
   const handleDownload = async () => {
     if (!window.electronAPI?.update) return
 
+    setUpdateState(prev => ({ ...prev, status: 'downloading', progress: 0 }))
     try {
       await window.electronAPI.update.download()
     } catch (error: any) {
+      setUpdateState(prev => ({ ...prev, status: 'error', error: String(error) }))
       toast.error('下载更新失败')
     }
   }

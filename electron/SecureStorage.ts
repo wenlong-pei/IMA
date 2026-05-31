@@ -6,6 +6,8 @@
 import { safeStorage, app } from 'electron'
 import * as fs from 'fs'
 import * as path from 'path'
+import * as crypto from 'crypto'
+import * as os from 'os'
 
 interface SecureStoreData {
   [key: string]: string // 加密后的 base64 字符串
@@ -56,19 +58,52 @@ class SecureStorage {
   }
 
   /**
+   * 从机器信息派生 AES-256 密钥
+   */
+  private deriveKey(): Buffer {
+    const machineInfo = [
+      os.hostname(),
+      os.platform(),
+      os.arch(),
+      os.totalmem(),
+      process.env.USERNAME || process.env.USER || 'unknown',
+      process.env.COMPUTERNAME || 'unknown',
+    ].join('|')
+    return crypto.scryptSync(machineInfo, 'grading-assistant-secure-salt', 32)
+  }
+
+  /**
    * 加密字符串
    */
   private encrypt(plainText: string): string {
-    if (!this.isAvailable()) {
-      console.warn('Safe storage not available, storing as plain text')
-      return Buffer.from(plainText).toString('base64')
+    if (this.isAvailable()) {
+      try {
+        const encrypted = safeStorage.encryptString(plainText)
+        return encrypted.toString('base64')
+      } catch (error) {
+        console.error('Encryption failed:', error)
+        throw new Error('Failed to encrypt data')
+      }
     }
 
+    // Fallback: 使用 AES-256-GCM 加密
+    console.warn('Safe storage not available, using fallback AES-256-GCM encryption')
     try {
-      const encrypted = safeStorage.encryptString(plainText)
-      return encrypted.toString('base64')
+      const key = this.deriveKey()
+      const iv = crypto.randomBytes(16)
+      const cipher = crypto.createCipheriv('aes-256-gcm', key, iv)
+
+      const encrypted = Buffer.concat([
+        cipher.update(plainText, 'utf8'),
+        cipher.final(),
+      ])
+      const authTag = cipher.getAuthTag()
+
+      // 拼接: iv(16) + authTag(16) + encrypted
+      const combined = Buffer.concat([iv, authTag, encrypted])
+      return combined.toString('base64')
     } catch (error) {
-      console.error('Encryption failed:', error)
+      console.error('Fallback encryption failed:', error)
       throw new Error('Failed to encrypt data')
     }
   }
@@ -77,16 +112,37 @@ class SecureStorage {
    * 解密字符串
    */
   private decrypt(encryptedBase64: string): string {
-    if (!this.isAvailable()) {
-      console.warn('Safe storage not available, decoding as plain text')
-      return Buffer.from(encryptedBase64, 'base64').toString('utf-8')
+    if (this.isAvailable()) {
+      try {
+        const encrypted = Buffer.from(encryptedBase64, 'base64')
+        return safeStorage.decryptString(encrypted)
+      } catch (error) {
+        console.error('Decryption failed:', error)
+        throw new Error('Failed to decrypt data')
+      }
     }
 
+    // Fallback: 使用 AES-256-GCM 解密
+    console.warn('Safe storage not available, using fallback AES-256-GCM decryption')
     try {
-      const encrypted = Buffer.from(encryptedBase64, 'base64')
-      return safeStorage.decryptString(encrypted)
+      const key = this.deriveKey()
+      const combined = Buffer.from(encryptedBase64, 'base64')
+
+      // 提取: iv(16) + authTag(16) + encrypted
+      const iv = combined.subarray(0, 16)
+      const authTag = combined.subarray(16, 32)
+      const encrypted = combined.subarray(32)
+
+      const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv)
+      decipher.setAuthTag(authTag)
+
+      const decrypted = Buffer.concat([
+        decipher.update(encrypted),
+        decipher.final(),
+      ])
+      return decrypted.toString('utf8')
     } catch (error) {
-      console.error('Decryption failed:', error)
+      console.error('Fallback decryption failed:', error)
       throw new Error('Failed to decrypt data')
     }
   }

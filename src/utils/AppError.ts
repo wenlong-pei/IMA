@@ -66,7 +66,7 @@ export class AppError extends Error {
     this.details = options?.details;
     this.timestamp = new Date();
     this.recoverable = options?.recoverable ?? true;
-    this.cause = options?.cause;
+    (this as any).cause = options?.cause;
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, AppError);
     }

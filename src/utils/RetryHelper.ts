@@ -1,6 +1,6 @@
 /**
- * 智能重试机制
- * 支持指数退避、最大重试次数、错误过滤
+ * 鏅鸿兘閲嶈瘯鏈哄埗
+ * 鏀寔鎸囨暟閫€閬裤€佹渶澶ч噸璇曟鏁般€侀敊璇繃婊?
  */
 
 import { AppError, ErrorUtils } from './AppError';
@@ -14,7 +14,7 @@ export interface RetryOptions {
   onRetry?: (attempt: number, error: AppError) => void;
 }
 
-export interface RetryResult<T> {
+export type RetryResult<T> = {
   success: true;
   data: T;
   attempts: number;
@@ -25,7 +25,7 @@ export interface RetryResult<T> {
 }
 
 /**
- * 带指数退避的重试执行器
+ * 甯︽寚鏁伴€€閬跨殑閲嶈瘯鎵ц鍣?
  */
 export async function withRetry<T>(
   fn: () => Promise<T>,
@@ -54,7 +54,7 @@ export async function withRetry<T>(
       
       lastError = error;
 
-      // 检查是否应该重试
+      // 妫€鏌ユ槸鍚﹀簲璇ラ噸璇?
       const retryStrategy = ErrorUtils.getRetryStrategy(error);
       const canRetry = shouldRetry?.(error) ?? (retryStrategy.shouldRetry && attempt <= maxRetries);
 
@@ -63,20 +63,20 @@ export async function withRetry<T>(
         return { success: false, error, attempts: attempt };
       }
 
-      // 计算延迟时间（指数退避 + 抖动）
+      // 璁＄畻寤惰繜鏃堕棿锛堟寚鏁伴€€閬?+ 鎶栧姩锛?
       const delayMs = Math.min(
         baseDelayMs * Math.pow(2, attempt - 1) + Math.random() * 1000,
         maxDelayMs
       );
 
-      logger.warn(`Retry attempt ${attempt}/${maxRetries}`, error, { delayMs });
+      logger.warn(`Retry attempt ${attempt}/${maxRetries}`, { error: error.message, delayMs });
       onRetry?.(attempt, error);
 
       await new Promise(resolve => setTimeout(resolve, delayMs));
     }
   }
 
-  // 理论上不会到达这里
+  // 鐞嗚涓婁笉浼氬埌杈捐繖閲?
   return { 
     success: false, 
     error: lastError!, 
@@ -85,7 +85,7 @@ export async function withRetry<T>(
 }
 
 /**
- * 同步重试执行器
+ * 鍚屾閲嶈瘯鎵ц鍣?
  */
 export function withRetrySync<T>(
   fn: () => T,
@@ -132,7 +132,7 @@ export function withRetrySync<T>(
 }
 
 /**
- * 创建带重试的函数
+ * 鍒涘缓甯﹂噸璇曠殑鍑芥暟
  */
 export function createRetryable<T extends unknown[], R>(
   fn: (...args: T) => Promise<R>,

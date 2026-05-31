@@ -11,7 +11,7 @@
     "rootDir": "electron",
     "resolveJsonModule": true,
     "declaration": false,
-    "types": ["node"]
+    "types": ["node", "electron"]
   },
   "include": ["electron/**/*"]
 }

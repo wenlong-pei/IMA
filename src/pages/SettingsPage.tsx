@@ -18,7 +18,6 @@ import {
   Server,
   Thermometer,
   Hash,
-  Download,
   HelpCircle,
   BookOpen
 } from 'lucide-react'

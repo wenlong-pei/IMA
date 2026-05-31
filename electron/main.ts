@@ -238,7 +238,7 @@ function createWindow() {
     minHeight: 700,
     frame: false,
     backgroundColor: '#f8fafc',
-    title: '皮老板智能阅卷工具 v2.1.3',
+    title: '皮老板智能阅卷工具 v2.2.0',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -258,6 +258,13 @@ function createWindow() {
       mainWindow.loadFile(indexPath)
     }
   }
+
+  mainWindow.on('maximize', () => {
+    mainWindow?.webContents.send('window:maximize-change', true)
+  })
+  mainWindow.on('unmaximize', () => {
+    mainWindow?.webContents.send('window:maximize-change', false)
+  })
 
   mainWindow.on('closed', () => {
     mainWindow = null
@@ -595,8 +602,7 @@ ipcMain.handle('bot:connect', async () => {
 // 导航到URL
 ipcMain.handle('bot:navigate', async (_, url: string) => {
   if (!gradingPage) throw new Error('浏览器未启动')
-  await gradingPage.goto(url)
-  await gradingPage.waitForLoadState('networkidle')
+  await gradingPage.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
 })
 
 // 分析页面元素
@@ -656,17 +662,33 @@ ipcMain.handle('bot:analyze', async () => {
 
     // 检测智学网特定元素
     const hasAnswerImage = pageInfo.isOldUI || pageInfo.isNewUI
-    const scoreInput = await gradingPage.evaluate((selectors: ZhixueSelectors) => {
-      return !!(document.querySelector(selectors.SCORE_INPUT_PLACEHOLDER) ||
-                document.querySelector(selectors.SCORE_INPUT_ALL_NEW) ||
-                document.querySelector(selectors.SCORE_INPUT))
-    }, getZhixueSelectors())
+    let scoreInput = false
+    try {
+      scoreInput = await gradingPage.evaluate((selectors: ZhixueSelectors) => {
+        return !!(document.querySelector(selectors.SCORE_INPUT_PLACEHOLDER) ||
+                  document.querySelector(selectors.SCORE_INPUT_ALL_NEW) ||
+                  document.querySelector(selectors.SCORE_INPUT))
+      }, getZhixueSelectors())
+    } catch (evaluateError: any) {
+      if (evaluateError.message?.includes('closed') || evaluateError.message?.includes('Target')) {
+        return { found: false, error: '页面连接已断开，请重新打开链接' }
+      }
+      throw evaluateError
+    }
 
-    const submitButton = await gradingPage.evaluate((selectors: ZhixueSelectors) => {
-      return !!(document.querySelector(selectors.SUBMIT_BUTTON_NEW) ||
-                Array.from(document.querySelectorAll('button')).some(btn =>
-                  btn.textContent?.includes(selectors.SUBMIT_BUTTON_TEXT)))
-    }, getZhixueSelectors())
+    let submitButton = false
+    try {
+      submitButton = await gradingPage.evaluate((selectors: ZhixueSelectors) => {
+        return !!(document.querySelector(selectors.SUBMIT_BUTTON_NEW) ||
+                  Array.from(document.querySelectorAll('button')).some(btn =>
+                    btn.textContent?.includes(selectors.SUBMIT_BUTTON_TEXT)))
+      }, getZhixueSelectors())
+    } catch (evaluateError: any) {
+      if (evaluateError.message?.includes('closed') || evaluateError.message?.includes('Target')) {
+        return { found: false, error: '页面连接已断开，请重新打开链接' }
+      }
+      throw evaluateError
+    }
 
     return {
       found: hasAnswerImage && scoreInput,
@@ -679,8 +701,11 @@ ipcMain.handle('bot:analyze', async () => {
       questionContent: pageInfo.questionContent || '',
       pageTitle: pageInfo.pageTitle || '',
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('分析页面失败:', error)
+    if (error.message?.includes('closed') || error.message?.includes('Target')) {
+      return { found: false, error: '页面连接已断开，请重新打开链接' }
+    }
     return { found: false, error: String(error) }
   }
 })
@@ -1267,10 +1292,6 @@ ipcMain.handle('bot:next', async () => {
   }
 })
 
-// 开始/停止
-ipcMain.on('bot:start', () => { isRunning = true })
-ipcMain.on('bot:stop', () => { isRunning = false })
-
 // 关闭浏览器
 ipcMain.handle('bot:close', async () => {
   isRunning = false
@@ -1298,22 +1319,11 @@ app.whenReady().then(() => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
-// ??/??/??/??
-ipcMain.on('bot:start', () => { isRunning = true })
-ipcMain.on('bot:pause', () => {
-  isRunning = false
-  // ????????? gradingPage ??????
 })
-ipcMain.on('bot:resume', () => { isRunning = true })
-ipcMain.on('bot:stop', () => {
-  isRunning = false
-  // stop ????????
-  if (gradingBrowser) {
-    gradingBrowser.close().catch((err: any) => console.error('???????:', err))
-    gradingBrowser = null
-    gradingContext = null
-    gradingPage = null
+
+// 窗口全部关闭时退出应用
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit()
   }
-})
-  if (process.platform !== 'darwin') app.quit()
 })

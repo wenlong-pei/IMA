@@ -1,10 +1,10 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
-// 允许的 IPC 通道白名单
+// 鍏佽鐨?IPC 閫氶亾鐧藉悕鍗?
 const VALID_CHANNELS: Record<string, string[]> = {
-  // 窗口控制
+  // 绐楀彛鎺у埗
   send: ['window-minimize', 'window-maximize', 'window-close'],
-  // 对话框
+  // 瀵硅瘽妗?
   invoke: ['dialog:openFile', 'dialog:saveFile',
     // Bot ???????????
     'bot:launch', 'bot:connect', 'bot:navigate', 'bot:analyze',
@@ -12,38 +12,38 @@ const VALID_CHANNELS: Record<string, string[]> = {
     'bot:grade', 'bot:submit', 'bot:next', 'bot:close',
     'bot:analyzeCorrection',
   ],
-  // 文件操作（受限制）
+  // 鏂囦欢鎿嶄綔锛堝彈闄愬埗锛?
   file: ['file:read', 'file:write', 'file:readImage'],
-  // 外部链接
+  // 澶栭儴閾炬帴
   shell: ['shell:openExternal'],
-  // 应用路径
+  // 搴旂敤璺緞
   app: ['app:getPath'],
-  // Bot 相关
+  // Bot 鐩稿叧
   bot: ['bot:setApiKey', 'bot:updateBotSettings', 'bot:get-settings', 'bot:configurePaddleOCR'],
-  // 安全存储
+  // 瀹夊叏瀛樺偍
   secure: ['secure:get', 'secure:set', 'secure:delete', 'secure:has', 'secure:is-available'],
-  // 自动更新
+  // 鑷姩鏇存柊
   update: ['update:check', 'update:download', 'update:install', 'update:status', 'update:set-skip'],
-  // 可监听的事件
-  on: ['update:state-changed', 'update:available', 'update:downloaded'],
+  // 鍙洃鍚殑浜嬩欢
+  on: ['update:state-changed', 'update:available', 'update:downloaded', 'window:maximize-change'],
 }
 
-// 验证通道是否在白名单中
+// 楠岃瘉閫氶亾鏄惁鍦ㄧ櫧鍚嶅崟涓?
 function validateChannel(type: keyof typeof VALID_CHANNELS, channel: string): boolean {
   return VALID_CHANNELS[type]?.includes(channel) ?? false
 }
 
-// 暴露给渲染进程的API
+// 鏆撮湶缁欐覆鏌撹繘绋嬬殑API
 contextBridge.exposeInMainWorld('electronAPI', {
   // ?? invoke????????????? Bot ?????????
-  invoke: (channel, ...args) => {
+  invoke: (channel: string, ...args: unknown[]) => {
     if (validateChannel('invoke', channel) || validateChannel('bot', channel)) {
       return ipcRenderer.invoke(channel, ...args)
     }
     throw new Error(`IPC channel "${channel}" is not allowed`)
   },
   // ?? send???????????
-  send: (channel, ...args) => {
+  send: (channel: string, ...args: unknown[]) => {
     if (validateChannel('send', channel) || validateChannel('bot', channel)) {
       ipcRenderer.send(channel, ...args)
       return
@@ -51,37 +51,42 @@ contextBridge.exposeInMainWorld('electronAPI', {
     throw new Error(`IPC channel "${channel}" is not allowed`)
   },
 
-  // 窗口控制
+  // 绐楀彛鎺у埗
   minimizeWindow: () => ipcRenderer.send('window-minimize'),
   maximizeWindow: () => ipcRenderer.send('window-maximize'),
   closeWindow: () => ipcRenderer.send('window-close'),
+  onWindowMaximizeChange: (callback: (isMaximized: boolean) => void) => {
+    const handler = (_: any, isMaximized: boolean) => callback(isMaximized)
+    ipcRenderer.on('window:maximize-change', handler)
+    return () => ipcRenderer.removeListener('window:maximize-change', handler)
+  },
 
-  // 文件对话框
+  // 鏂囦欢瀵硅瘽妗?
   openFile: (options: Electron.OpenDialogOptions) => 
     ipcRenderer.invoke('dialog:openFile', options),
   saveFile: (options: Electron.SaveDialogOptions) => 
     ipcRenderer.invoke('dialog:saveFile', options),
 
-  // 文件操作（只允许访问应用数据目录）
+  // 鏂囦欢鎿嶄綔锛堝彧鍏佽璁块棶搴旂敤鏁版嵁鐩綍锛?
   readFile: (filePath: string) => ipcRenderer.invoke('file:read', filePath),
   writeFile: (filePath: string, content: string) => 
     ipcRenderer.invoke('file:write', filePath, content),
   readImage: (filePath: string) => ipcRenderer.invoke('file:readImage', filePath),
 
-  // 外部链接
+  // 澶栭儴閾炬帴
   openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
 
-  // 应用路径
+  // 搴旂敤璺緞
   getPath: (name: string) => ipcRenderer.invoke('app:getPath', name),
 
-  // 设置 API Key
+  // 璁剧疆 API Key
   setApiKey: (apiKey: string) => ipcRenderer.send('bot:setApiKey', apiKey),
   
-  // Bot 设置同步（多服务商支持）
+  // Bot 璁剧疆鍚屾锛堝鏈嶅姟鍟嗘敮鎸侊級
   updateBotSettings: (settings: any) => ipcRenderer.send('bot:updateBotSettings', settings),
   getBotSettings: () => ipcRenderer.invoke('bot:get-settings'),
   
-  // 配置 PaddleOCR 服务
+  // 閰嶇疆 PaddleOCR 鏈嶅姟
   configurePaddleOCR: (config: any) => ipcRenderer.send('bot:configurePaddleOCR', {
     enabled: config.enabled,
     aistudioToken: config.token,
@@ -90,7 +95,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     timeout: config.timeout,
   }),
 
-  // 安全存储（API Key 加密）
+  // 瀹夊叏瀛樺偍锛圓PI Key 鍔犲瘑锛?
   secureStorage: {
     get: (key: string) => ipcRenderer.invoke('secure:get', key),
     set: (key: string, value: string) => ipcRenderer.invoke('secure:set', key, value),
@@ -99,7 +104,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     isAvailable: () => ipcRenderer.invoke('secure:is-available'),
   },
 
-  // 自动更新
+  // 鑷姩鏇存柊
   update: {
     check: () => ipcRenderer.invoke('update:check'),
     download: () => ipcRenderer.invoke('update:download'),
@@ -109,7 +114,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onStateChanged: (callback: (state: any) => void) => {
       const handler = (_: any, state: any) => callback(state)
       ipcRenderer.on('update:state-changed', handler)
-      // 返回取消订阅函数
+      // 杩斿洖鍙栨秷璁㈤槄鍑芥暟
       return () => ipcRenderer.removeListener('update:state-changed', handler)
     },
     onAvailable: (callback: (info: any) => void) => {
@@ -125,7 +130,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 })
 
-// 更新状态类型
+// 鏇存柊鐘舵€佺被鍨?
 interface UpdateState {
   status: 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error'
   progress: number
@@ -134,13 +139,14 @@ interface UpdateState {
   error?: string
 }
 
-// TypeScript 类型声明
+// TypeScript 绫诲瀷澹版槑
 export interface ElectronAPI {
-  invoke: (channel, ...args) => Promise<unknown>
-  send: (channel, ...args) => void
+  invoke: (channel: string, ...args: unknown[]) => Promise<unknown>
+  send: (channel: string, ...args: unknown[]) => void
   minimizeWindow: () => void
   maximizeWindow: () => void
   closeWindow: () => void
+  onWindowMaximizeChange: (callback: (isMaximized: boolean) => void) => () => void
   openFile: (options: Electron.OpenDialogOptions) => Promise<Electron.OpenDialogReturnValue>
   saveFile: (options: Electron.SaveDialogOptions) => Promise<Electron.SaveDialogReturnValue>
   readFile: (filePath: string) => Promise<{ success: boolean; data?: string; error?: string }>

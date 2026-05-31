@@ -35,6 +35,12 @@ export const useStandardsStore = create<StandardsState>()(
       currentStandardId: null,
 
       addStandard: (standard) => {
+        if (!standard.name || standard.name.trim() === '') {
+          throw new Error('标准名称不能为空')
+        }
+        if (!standard.totalScore || standard.totalScore <= 0) {
+          throw new Error('总分必须大于0')
+        }
         const id = uuidv4()
         const now = new Date().toISOString()
         set((state) => ({
@@ -59,6 +65,8 @@ export const useStandardsStore = create<StandardsState>()(
       deleteStandard: (id) => {
         set((state) => ({
           standards: state.standards.filter((s) => s.id !== id),
+          // 如果删除的是当前选中的标准，清除悬挂引用
+          currentStandardId: state.currentStandardId === id ? null : state.currentStandardId,
         }))
       },
 
@@ -110,6 +118,8 @@ export const useStandardsStore = create<StandardsState>()(
           set({
             currentPresetId: id,
             standards: preset.standards,
+            // 切换预设后旧的标准ID不再有效，清除悬挂引用
+            currentStandardId: null,
           })
         }
       },

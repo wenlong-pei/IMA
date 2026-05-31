@@ -1,13 +1,20 @@
 import { Minus, Square, X, Maximize2 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './TitleBar.scss'
-
-const APP_VERSION = '2.1.3'
 
 const api = typeof window !== 'undefined' && (window as any).electronAPI
 
 export default function TitleBar() {
   const [isMaximized, setIsMaximized] = useState(false)
+
+  // 监听主进程推送的窗口最大化状态变化
+  useEffect(() => {
+    if (!window.electronAPI?.onWindowMaximizeChange) return
+    const unsubscribe = window.electronAPI.onWindowMaximizeChange((maximized: boolean) => {
+      setIsMaximized(maximized)
+    })
+    return unsubscribe
+  }, [])
 
   const handleMinimize = () => {
     api?.minimizeWindow()
@@ -15,7 +22,6 @@ export default function TitleBar() {
 
   const handleMaximize = () => {
     api?.maximizeWindow()
-    setIsMaximized(!isMaximized)
   }
 
   const handleClose = () => {
@@ -23,7 +29,7 @@ export default function TitleBar() {
   }
 
   return (
-    <header className="title-bar">
+    <header className="title-bar" onDoubleClick={handleMaximize}>
       <div className="title-bar__left">
         <div className="title-bar__logo">
           <svg viewBox="0 0 32 32" className="title-bar__icon">
@@ -38,7 +44,7 @@ export default function TitleBar() {
           </svg>
         </div>
         <span className="title-bar__title">皮老板智能阅卷工具</span>
-        <span className="title-bar__version">v{APP_VERSION}</span>
+        <span className="title-bar__version">v{__APP_VERSION__}</span>
       </div>
       
       <div className="title-bar__right">

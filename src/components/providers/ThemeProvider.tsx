@@ -21,11 +21,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     
     // 添加/移除 dark 类名
     if (activeTheme === 'dark') {
-      document.body.classList.add('dark-theme')
-      document.body.classList.remove('light-theme')
+      document.documentElement.classList.add('dark-theme')
+      document.documentElement.classList.remove('light-theme')
     } else {
-      document.body.classList.add('light-theme')
-      document.body.classList.remove('dark-theme')
+      document.documentElement.classList.add('light-theme')
+      document.documentElement.classList.remove('dark-theme')
     }
     
     // 监听系统主题变化
@@ -33,11 +33,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
       const handleChange = (e: MediaQueryListEvent) => {
         if (e.matches) {
-          document.body.classList.add('dark-theme')
-          document.body.classList.remove('light-theme')
+          document.documentElement.classList.add('dark-theme')
+          document.documentElement.classList.remove('light-theme')
         } else {
-          document.body.classList.add('light-theme')
-          document.body.classList.remove('dark-theme')
+          document.documentElement.classList.add('light-theme')
+          document.documentElement.classList.remove('dark-theme')
         }
       }
       mediaQuery.addEventListener('change', handleChange)

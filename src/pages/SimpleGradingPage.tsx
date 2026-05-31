@@ -62,6 +62,8 @@ export default function SimpleGradingPage() {
   // 不持久化的本地状态
   const [browserConnected, setBrowserConnected] = useState(false)
   const [isZhixuePage, setIsZhixuePage] = useState(false)
+  const [browserLaunched, setBrowserLaunched] = useState(false) // 浏览器是否已启动（即使检测失败也不重启）
+  const [isConnecting, setIsConnecting] = useState(false) // 正在连接中
   const runningRef = useRef(false)
   const pausedRef = useRef(false)
 
@@ -135,47 +137,111 @@ export default function SimpleGradingPage() {
     }
 
     playClick()
-    addLog('正在启动浏览器...')
+    setIsConnecting(true)
 
     try {
-      const result = await gradingBotProxy.launchBrowser(false)
-      if (!result.success) {
-        throw new Error(result.error || '启动浏览器失败')
+      // 1. 启动浏览器（如果尚未启动，或之前启动的已关闭）
+      if (!browserLaunched) {
+        addLog('正在启动浏览器...')
+        const result = await gradingBotProxy.launchBrowser(false)
+        if (!result.success) {
+          throw new Error(result.error || '启动浏览器失败')
+        }
+        setBrowserLaunched(true)
+        addLog('浏览器已启动', 'success')
       }
 
-      addLog(`正在打开: ${url}`)
-      await gradingBotProxy.navigateToUrl(url)
-
-      addLog('正在分析智学网页面...')
-      const elements = await gradingBotProxy.analyzePage()
-
-      if (elements.found) {
-        setBrowserConnected(true)
-        setIsZhixuePage(true)
-        addLog('已连接到智学网', 'success')
-        if (elements.isOldUI) {
-          addLog('检测到旧版UI', 'success')
+      // 2. 导航到URL（如果浏览器已断开，先重新启动）
+      try {
+        addLog(`正在打开: ${url}`)
+        await gradingBotProxy.navigateToUrl(url)
+      } catch (navError: any) {
+        // 浏览器可能已关闭，重置状态并重新启动
+        if (String(navError).includes('closed') || String(navError).includes('Target page')) {
+          addLog('浏览器连接已断开，正在重新启动...', 'warning')
+          setBrowserLaunched(false)
+          setBrowserConnected(false)
+          setIsZhixuePage(false)
+          const result = await gradingBotProxy.launchBrowser(false)
+          if (!result.success) {
+            throw new Error(result.error || '重新启动浏览器失败')
+          }
+          setBrowserLaunched(true)
+          addLog('浏览器已重新启动', 'success')
+          await gradingBotProxy.navigateToUrl(url)
+        } else {
+          throw navError
         }
-        if (elements.isNewUI) {
-          addLog('检测到新版UI', 'success')
-        }
-        addLog('找到答题图片区域', 'success')
-        addLog('找到分数输入框', 'success')
-        if (elements.questionContent) {
-          addLog(`获取到题目内容: ${elements.questionContent.substring(0, 50)}...`, 'info')
-        }
-        playSuccess()
-        toast.success('智学网页面分析完成，可以开始批改')
-      } else {
-        if (elements.error) {
-          throw new Error(elements.error)
-        }
-        throw new Error('未能识别智学网页面元素，请检查链接是否正确')
       }
+
+      // 3. 分析页面
+      await analyzeCurrentPage()
     } catch (error) {
       addLog(`连接失败: ${error}`, 'error')
       playError()
       toast.error('连接失败')
+    } finally {
+      setIsConnecting(false)
+    }
+  }
+
+  // 重新检测页面（不重启浏览器，用于登录后重试）
+  const handleReanalyze = async () => {
+    playClick()
+    setIsConnecting(true)
+    addLog('正在重新检测页面...')
+    try {
+      await analyzeCurrentPage()
+    } catch (error: any) {
+      // 浏览器可能已关闭
+      if (String(error).includes('closed') || String(error).includes('Target page')) {
+        addLog('浏览器连接已断开，请点击「重新打开链接」', 'warning')
+        setBrowserLaunched(false)
+        setBrowserConnected(false)
+        setIsZhixuePage(false)
+        toast('浏览器已关闭，请点击「重新打开链接」重新启动', { icon: '⚠️', duration: 4000 })
+      } else {
+        addLog(`检测失败: ${error}`, 'error')
+        playError()
+        toast.error('检测失败')
+      }
+    } finally {
+      setIsConnecting(false)
+    }
+  }
+
+  // 分析当前页面（独立函数，可被多处调用）
+  const analyzeCurrentPage = async () => {
+    addLog('正在分析智学网页面...')
+    const elements = await gradingBotProxy.analyzePage()
+
+    if (elements.found) {
+      setBrowserConnected(true)
+      setIsZhixuePage(true)
+      addLog('已连接到智学网', 'success')
+      if (elements.isOldUI) {
+        addLog('检测到旧版UI', 'success')
+      }
+      if (elements.isNewUI) {
+        addLog('检测到新版UI', 'success')
+      }
+      addLog('找到答题图片区域', 'success')
+      addLog('找到分数输入框', 'success')
+      if (elements.questionContent) {
+        addLog(`获取到题目内容: ${elements.questionContent.substring(0, 50)}...`, 'info')
+      }
+      playSuccess()
+      toast.success('智学网页面分析完成，可以开始批改')
+    } else {
+      setBrowserConnected(false)
+      setIsZhixuePage(false)
+      if (elements.error) {
+        addLog(`页面检测未通过: ${elements.error}`, 'warning')
+        toast('页面可能需要登录，请在浏览器中登录后点击「重新检测」', { icon: '🔑', duration: 5000 })
+      } else {
+        addLog('未能识别智学网页面元素，请检查链接是否正确', 'warning')
+        toast('未找到阅卷页面元素，请确认已进入阅卷页面后点击「重新检测」', { icon: '⚠️', duration: 5000 })
+      }
     }
   }
 
@@ -547,12 +613,28 @@ export default function SimpleGradingPage() {
               <button
                 className={`btn ${browserConnected ? 'btn-success' : 'btn-primary'}`}
                 onClick={handleConnect}
-                disabled={isRunning || !url || !currentStandard}
+                disabled={isRunning || isConnecting || !url || !currentStandard}
                 style={{ width: '100%', marginTop: 10 }}
               >
-                {browserConnected ? <CheckCircle size={16} /> : <Link size={16} />}
-                {browserConnected ? '已连接' : '打开链接'}
+                {isConnecting ? (
+                  <><span className="spinner" style={{ width: 16, height: 16, borderWidth: 2, display: 'inline-block', verticalAlign: 'middle', marginRight: 6 }} />检测中...</>
+                ) : browserConnected ? (
+                  <><CheckCircle size={16} />已连接</>
+                ) : (
+                  <><Link size={16} />{browserLaunched ? '重新打开链接' : '打开链接'}</>
+                )}
               </button>
+              {/* 重新检测按钮：浏览器已启动但检测失败时显示 */}
+              {browserLaunched && !browserConnected && !isConnecting && (
+                <button
+                  className="btn btn-warning"
+                  onClick={handleReanalyze}
+                  disabled={isRunning}
+                  style={{ width: '100%', marginTop: 8 }}
+                >
+                  🔑 重新检测页面（登录后点击）
+                </button>
+              )}
             </div>
             {isZhixuePage && (
               <div className="card-footer">

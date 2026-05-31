@@ -108,6 +108,7 @@ class AutoUpdateService {
    * 设置 IPC 处理程序
    */
   private setupIpcHandlers(): void {
+    ipcMain.removeHandler('update:check')
     ipcMain.handle('update:check', async () => {
       try {
         const result = await autoUpdater.checkForUpdates()
@@ -118,6 +119,7 @@ class AutoUpdateService {
       }
     })
 
+    ipcMain.removeHandler('update:download')
     ipcMain.handle('update:download', async () => {
       try {
         await autoUpdater.downloadUpdate()
@@ -128,14 +130,17 @@ class AutoUpdateService {
       }
     })
 
+    ipcMain.removeHandler('update:install')
     ipcMain.handle('update:install', () => {
       autoUpdater.quitAndInstall()
     })
 
+    ipcMain.removeHandler('update:status')
     ipcMain.handle('update:status', () => {
       return this.state
     })
 
+    ipcMain.removeHandler('update:set-skip')
     ipcMain.handle('update:set-skip', (_, skip: boolean) => {
       // electron-updater 不支持运行时跳过更新，这里仅记录状态
       logger.info(`Update skip setting: ${skip}`)

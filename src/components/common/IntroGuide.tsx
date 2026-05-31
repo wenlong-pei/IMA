@@ -8,12 +8,12 @@ const steps = [
   {
     element: '.url-input-wrapper',
     intro: '在这里输入智学网的链接地址，支持 zhixue.com 和 zhixueyun.com',
-    position: 'bottom'
+    position: 'bottom' as const
   },
   {
     element: '.standards-list',
     intro: '从评分标准列表中选择一个标准，用于AI评分参考',
-    position: 'right'
+    position: 'right' as const
   },
   {
     element: '.mode-selector',
@@ -28,12 +28,12 @@ const steps = [
   {
     element: '.preview-card',
     intro: '答题图片将实时显示在这里，你可以预览当前批改的内容',
-    position: 'left'
+    position: 'left' as const
   },
   {
     element: '.logs-card',
     intro: '运行日志会显示批改过程中的详细信息，便于排查问题',
-    position: 'left'
+    position: 'left' as const
   }
 ]
 

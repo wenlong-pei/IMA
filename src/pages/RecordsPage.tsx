@@ -40,14 +40,14 @@ export default function RecordsPage() {
     let result = getFilteredRecords()
     if (searchText) {
       const search = searchText.toLowerCase()
-      result = result.filter(r => 
-        r.studentName?.toLowerCase().includes(search) ||
-        r.studentId?.toLowerCase().includes(search) ||
-        r.standardName.toLowerCase().includes(search)
+      result = result.filter(r =>
+        (r.studentName?.toLowerCase() ?? '').includes(search) ||
+        (r.studentId?.toLowerCase() ?? '').includes(search) ||
+        (r.standardName?.toLowerCase() ?? '').includes(search)
       )
     }
     return result
-  }, [records, filters, searchText])
+  }, [records, filters, searchText, getFilteredRecords])
 
   // 按评分标准分组
   const groupedRecords = useMemo(() => {
@@ -90,7 +90,7 @@ export default function RecordsPage() {
   }
 
   // 全选
-  const handleSelectAll = () => {
+  const _handleSelectAll = () => {
     if (selectedIds.length === filteredRecords.length) {
       setSelectedIds([])
     } else {
@@ -114,7 +114,7 @@ export default function RecordsPage() {
   const handleExport = () => {
     playClick()
     // TODO: 实现导出功能
-    toast.success('导出功能开发中...')
+    toast.info('导出功能开发中...')
   }
 
   // 状态图标
@@ -346,11 +346,7 @@ export default function RecordsPage() {
                         </td>
                         <td className="col-mode">{getModeLabel(record.evaluationMode)}</td>
                         <td className="col-status">{getStatusIcon(record.status)}</td>
-                        <td className="col-actions">
-                          <button className="btn-icon" title="查看详情">
-                            <Eye size={16} />
-                          </button>
-                        </td>
+                        <td className="col-actions"></td>
                       </motion.tr>
                     ))}
                   </tbody>

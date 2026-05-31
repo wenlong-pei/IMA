@@ -3,7 +3,6 @@
  * 支持多级别日志、文件输出、格式化输出
  */
 
-import { ErrorSeverity } from './AppError';
 
 export enum LogLevel {
   DEBUG = 'debug',
