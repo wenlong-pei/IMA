@@ -9,6 +9,11 @@ interface GradingState {
   isPaused: boolean
   gradingMode: GradingMode
   
+  // 浏览器连接状态（跨页面持久化）
+  browserConnected: boolean
+  isZhixuePage: boolean
+  browserLaunched: boolean
+  
   // 批改进度
   stats: {
     total: number
@@ -36,6 +41,9 @@ interface GradingState {
   setIsRunning: (isRunning: boolean) => void
   setIsPaused: (isPaused: boolean) => void
   setGradingMode: (mode: GradingMode) => void
+  setBrowserConnected: (connected: boolean) => void
+  setIsZhixuePage: (isZhixue: boolean) => void
+  setBrowserLaunched: (launched: boolean) => void
   updateStats: (updates: Partial<GradingState['stats']> | ((stats: GradingState['stats']) => Partial<GradingState['stats']>)) => void
   resetStats: () => void
   setPreviewImage: (image: string | null) => void
@@ -64,6 +72,9 @@ export const useGradingStore = create<GradingState>()(
       isRunning: false,
       isPaused: false,
       gradingMode: 'normal',
+      browserConnected: false,
+      isZhixuePage: false,
+      browserLaunched: false,
       stats: { ...defaultStats },
       previewImage: null,
       recognizedText: '',
@@ -78,6 +89,9 @@ export const useGradingStore = create<GradingState>()(
       setIsRunning: (isRunning) => set({ isRunning }),
       setIsPaused: (isPaused) => set({ isPaused }),
       setGradingMode: (gradingMode) => set({ gradingMode }),
+      setBrowserConnected: (browserConnected) => set({ browserConnected }),
+      setIsZhixuePage: (isZhixuePage) => set({ isZhixuePage }),
+      setBrowserLaunched: (browserLaunched) => set({ browserLaunched }),
       updateStats: (updates) => set((state) => {
         const newUpdates = typeof updates === 'function' ? updates(state.stats) : updates
         return { stats: { ...state.stats, ...newUpdates } }
@@ -94,6 +108,9 @@ export const useGradingStore = create<GradingState>()(
         url: '',
         isRunning: false,
         isPaused: false,
+        browserConnected: false,
+        isZhixuePage: false,
+        browserLaunched: false,
         stats: { ...defaultStats },
         previewImage: null,
         recognizedText: '',
@@ -111,6 +128,9 @@ export const useGradingStore = create<GradingState>()(
         url: state.url,
         gradingMode: state.gradingMode,
         stats: state.stats,
+        browserConnected: state.browserConnected,
+        isZhixuePage: state.isZhixuePage,
+        browserLaunched: state.browserLaunched,
       }),
     }
   )

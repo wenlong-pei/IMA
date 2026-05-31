@@ -204,9 +204,9 @@ function getZhixueSelectors(): ZhixueSelectors {
     SCORE_INPUT: selectors?.scoreInput?.legacy || 'input[type="number"]',
     SCORE_INPUT_PLACEHOLDER: selectors?.scoreInput?.placeholder || 'input[placeholder*="分"]',
     SUBMIT_BUTTON_TEXT: selectors?.submitButton?.text || '提交分数',
-    // 新版UI (2025年5月改版)
-    ANSWER_IMAGE_NEW: selectors?.answerImages?.modern || '.enhance-definition-bright',
-    SCORE_INPUT_NEW: selectors?.scoreInput?.modern || '#txt_marking_17',
+    // 新版UI
+    ANSWER_IMAGE_NEW: selectors?.answerImages?.modern || 'div.divBlock',
+    SCORE_INPUT_NEW: selectors?.scoreInput?.modern || 'input.topictxt_input',
     SCORE_INPUT_ALL_NEW: selectors?.scoreInput?.allModern || '#txt_marking_all',
     SUBMIT_BUTTON_NEW: selectors?.submitButton?.modern || '#bnt_save',
   }
@@ -219,9 +219,9 @@ const ZHIXUE_SELECTORS: ZhixueSelectors = {
   SCORE_INPUT: 'input[type="number"]',
   SCORE_INPUT_PLACEHOLDER: 'input[placeholder*="分"]',
   SUBMIT_BUTTON_TEXT: '提交分数',
-  // 新版UI (2025年5月改版)
-  ANSWER_IMAGE_NEW: '.enhance-definition-bright',
-  SCORE_INPUT_NEW: '#txt_marking_17',
+  // 新版UI
+  ANSWER_IMAGE_NEW: 'div.divBlock',
+  SCORE_INPUT_NEW: 'input.topictxt_input',
   SCORE_INPUT_ALL_NEW: '#txt_marking_all',
   SUBMIT_BUTTON_NEW: '#bnt_save',
 }
@@ -238,7 +238,7 @@ function createWindow() {
     minHeight: 700,
     frame: false,
     backgroundColor: '#f8fafc',
-    title: '皮老板智能阅卷工具 v2.2.0',
+    title: '皮老板智能阅卷工具 v2.2.1',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -751,9 +751,14 @@ async function captureAnswerImage(): Promise<string | null> {
   if (!gradingPage) return null
   try {
     const imageUrls = await gradingPage.evaluate((selectors: ZhixueSelectors) => {
+      // 旧版UI：直接查找 img 标签
       let imgs = document.querySelectorAll(selectors.ANSWER_IMAGE)
       if (imgs.length === 0) {
-        imgs = document.querySelectorAll(selectors.ANSWER_IMAGE_NEW)
+        // 新版UI：div.divBlock 是图片容器，需要从内部查找 img
+        const containers = document.querySelectorAll(selectors.ANSWER_IMAGE_NEW)
+        if (containers.length > 0) {
+          imgs = containers[0].querySelectorAll('img')
+        }
       }
       return Array.from(imgs).map(img => (img as HTMLImageElement).src).filter(src => src)
     }, getZhixueSelectors())

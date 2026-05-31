@@ -48,6 +48,9 @@ export default function SimpleGradingPage() {
     setIsRunning,
     setIsPaused,
     setGradingMode,
+    setBrowserConnected,
+    setIsZhixuePage,
+    setBrowserLaunched,
     updateStats,
     resetStats,
     setPreviewImage,
@@ -59,10 +62,12 @@ export default function SimpleGradingPage() {
     setCountdown,
   } = gradingStore
 
-  // 不持久化的本地状态
-  const [browserConnected, setBrowserConnected] = useState(false)
-  const [isZhixuePage, setIsZhixuePage] = useState(false)
-  const [browserLaunched, setBrowserLaunched] = useState(false) // 浏览器是否已启动（即使检测失败也不重启）
+  // 从 store 获取浏览器连接状态（跨页面持久化）
+  const browserConnected = gradingStore.browserConnected
+  const isZhixuePage = gradingStore.isZhixuePage
+  const browserLaunched = gradingStore.browserLaunched
+
+  // 仅本地的临时状态
   const [isConnecting, setIsConnecting] = useState(false) // 正在连接中
   const runningRef = useRef(false)
   const pausedRef = useRef(false)
